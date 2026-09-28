@@ -58,6 +58,37 @@ async function handleApi(request, env, url) {
     return json({ id: newId, ...doc }, 201);
   }
 
+  if (request.method === 'PUT' && id) {
+    const existing = await env.CAMPANHAS.get('campanha:' + id, 'json');
+    if (!existing) return json({ error: 'Disparo não encontrado' }, 404);
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return json({ error: 'JSON inválido' }, 400);
+    }
+    const required = ['nome', 'canal', 'data', 'vigencia', 'estado', 'cluster'];
+    for (const field of required) {
+      if (!body[field]) return json({ error: `Campo obrigatório ausente: ${field}` }, 400);
+    }
+    const doc = {
+      nome: String(body.nome),
+      canal: String(body.canal),
+      data: String(body.data),
+      vigencia: String(body.vigencia),
+      estado: String(body.estado),
+      cluster: String(body.cluster),
+      enviados: Number(body.enviados) || 0,
+      abriram: Number(body.abriram) || 0,
+      vendaGerada: Number(body.vendaGerada) || 0,
+      positivacao: Number(body.positivacao) || 0,
+      criadoEm: existing.criadoEm,
+      atualizadoEm: new Date().toISOString(),
+    };
+    await env.CAMPANHAS.put('campanha:' + id, JSON.stringify(doc));
+    return json({ id, ...doc });
+  }
+
   if (request.method === 'DELETE' && id) {
     await env.CAMPANHAS.delete('campanha:' + id);
     return json({ ok: true });

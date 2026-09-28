@@ -325,15 +325,19 @@
   .led-value.bad{ color: var(--red); }
   .led-sub{ font-size: .7rem; color: var(--text-dim); }
 
-  .remove-btn{
+  .card-actions{
     position: absolute; top: 10px; right: 12px;
+    display: flex; gap: 4px;
+  }
+  .card-actions button{
     font-family: 'Inter', sans-serif;
     font-size: .66rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
     color: var(--text-dim);
     background: none; border: none; cursor: pointer; padding: 4px 7px;
   }
+  .edit-btn:hover{ color: var(--accent); }
   .remove-btn:hover{ color: var(--red); }
-  .remove-btn:disabled{ opacity: .5; cursor: default; }
+  .card-actions button:disabled{ opacity: .5; cursor: default; }
 
   footer.page{
     font-size: .72rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;
@@ -430,7 +434,7 @@
   </section>
 
   <section class="panel" aria-label="Adicionar disparo" id="form-card" hidden>
-    <div class="panel-title">Registrar disparo</div>
+    <div class="panel-title" id="panel-form-title">Registrar disparo</div>
     <div class="panel-hint">Preencha após cada disparo, pelo B2list ou pela Web. Não abriram, custo e positivação são calculados/registrados aqui.</div>
     <form id="campaign-form">
       <div class="field span-2">
@@ -538,7 +542,10 @@
     const m = computeMetrics(c);
     return `
       <article class="card" data-id="${id}">
-        <button class="remove-btn" data-remove="${id}">remover</button>
+        <div class="card-actions">
+          <button class="edit-btn" data-edit="${id}">editar</button>
+          <button class="remove-btn" data-remove="${id}">remover</button>
+        </div>
         <div class="ring-cell">
           <div class="ring" style="--pct:${m.pctAbriu}">
             <span class="ring-label"><b>${Math.round(m.pctAbriu)}%</b><span>ABRIU</span></span>
@@ -642,6 +649,9 @@
     container.querySelectorAll('[data-remove]').forEach(btn => {
       btn.addEventListener('click', () => removeCampaign(btn.getAttribute('data-remove')));
     });
+    container.querySelectorAll('[data-edit]').forEach(btn => {
+      btn.addEventListener('click', () => startEdit(btn.getAttribute('data-edit')));
+    });
   }
 
   let latestDocs = [];
@@ -699,6 +709,48 @@
     }
   }
 
+  let editingId = null;
+
+  function fillForm(data){
+    document.getElementById('f-nome').value = data.nome || '';
+    document.getElementById('f-canal').value = data.canal || '';
+    document.getElementById('f-data').value = data.data || '';
+    document.getElementById('f-vigencia').value = data.vigencia || '';
+    document.getElementById('f-estado').value = data.estado || '';
+    document.getElementById('f-cluster').value = data.cluster || '';
+    document.getElementById('f-enviados').value = data.enviados ?? '';
+    document.getElementById('f-abriram').value = data.abriram ?? '';
+    document.getElementById('f-venda').value = data.vendaGerada ?? '';
+    document.getElementById('f-positivacao').value = data.positivacao ?? '';
+  }
+
+  function openForm(){
+    document.getElementById('form-card').hidden = false;
+    document.getElementById('toggle-form-btn').textContent = 'Fechar';
+    document.getElementById('f-nome').focus();
+  }
+
+  function closeForm(){
+    const form = document.getElementById('campaign-form');
+    form.reset();
+    editingId = null;
+    document.getElementById('form-card').hidden = true;
+    document.getElementById('toggle-form-btn').textContent = '+ Registrar disparo';
+    document.getElementById('panel-form-title').textContent = 'Registrar disparo';
+    document.getElementById('submit-btn').textContent = 'Adicionar disparo';
+  }
+
+  function startEdit(id){
+    const entry = latestDocs.find(d => d.id === id);
+    if(!entry) return;
+    editingId = id;
+    fillForm(entry.data);
+    document.getElementById('panel-form-title').textContent = 'Editar disparo';
+    document.getElementById('submit-btn').textContent = 'Salvar alterações';
+    openForm();
+    window.scrollTo({ top: document.getElementById('form-card').offsetTop - 20, behavior: 'smooth' });
+  }
+
   function init(){
     document.getElementById('filter-canal').addEventListener('change', renderAll);
     document.getElementById('filter-data').addEventListener('change', renderAll);
@@ -718,10 +770,14 @@
     const toggleBtn = document.getElementById('toggle-form-btn');
 
     toggleBtn.addEventListener('click', () => {
-      const willShow = formCard.hidden;
-      formCard.hidden = !willShow;
-      toggleBtn.textContent = willShow ? 'Fechar' : '+ Registrar disparo';
-      if(willShow) document.getElementById('f-nome').focus();
+      if(!formCard.hidden){
+        closeForm();
+        return;
+      }
+      editingId = null;
+      document.getElementById('panel-form-title').textContent = 'Registrar disparo';
+      document.getElementById('submit-btn').textContent = 'Adicionar disparo';
+      openForm();
     });
 
     form.addEventListener('submit', async (e) => {
@@ -757,16 +813,16 @@
       btn.disabled = true;
       status.textContent = 'Salvando…';
       try{
-        const res = await fetch('/api/campanhas', {
-          method: 'POST',
+        const url = editingId ? '/api/campanhas/' + encodeURIComponent(editingId) : '/api/campanhas';
+        const method = editingId ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+          method,
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ nome, canal, data, vigencia, estado, cluster, enviados, abriram, vendaGerada, positivacao }),
         });
         if(!res.ok) throw new Error('HTTP ' + res.status);
-        form.reset();
-        status.textContent = 'Disparo adicionado.';
-        formCard.hidden = true;
-        toggleBtn.textContent = '+ Registrar disparo';
+        status.textContent = editingId ? 'Disparo atualizado.' : 'Disparo adicionado.';
+        closeForm();
         await loadCampanhas();
       }catch(err){
         console.error(err);
