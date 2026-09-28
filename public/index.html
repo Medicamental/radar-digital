@@ -237,13 +237,30 @@
     align-items: center;
     gap: 12px;
   }
-  #imagem-preview{
-    max-height: 80px;
-    max-width: 140px;
-    object-fit: contain;
+  .imagem-preview-box{
+    position: relative;
+    width: 120px;
+    height: 80px;
     border-radius: 8px;
     border: 1px solid var(--border);
     background: var(--panel-2);
+    overflow: hidden;
+  }
+  #imagem-preview{
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  #imagem-preview-fallback{
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 6px;
+    font-size: .66rem;
+    color: var(--text-dim);
   }
 
   /* thumbnail no card + lightbox */
@@ -330,7 +347,7 @@
     border: 1px solid var(--border);
     border-radius: 18px;
     display: flex;
-    align-items: stretch;
+    flex-direction: column;
     position: relative;
     overflow: hidden;
   }
@@ -408,11 +425,13 @@
   .led-value.bad{ color: var(--red); }
   .led-sub{ font-size: .7rem; color: var(--text-dim); }
 
-  .card-actions{
-    position: absolute; top: 10px; right: 12px;
-    display: flex; gap: 4px;
+  .card-toolbar{
+    display: flex;
+    justify-content: flex-end;
+    gap: 4px;
+    padding: 6px 10px 0;
   }
-  .card-actions button{
+  .card-toolbar button{
     font-family: 'Inter', sans-serif;
     font-size: .66rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
     color: var(--text-dim);
@@ -420,7 +439,8 @@
   }
   .edit-btn:hover{ color: var(--accent); }
   .remove-btn:hover{ color: var(--red); }
-  .card-actions button:disabled{ opacity: .5; cursor: default; }
+  .card-toolbar button:disabled{ opacity: .5; cursor: default; }
+  .card-row{ display: flex; align-items: stretch; }
 
   footer.page{
     font-size: .72rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;
@@ -438,7 +458,7 @@
     header.topbar{ padding: 14px 18px; }
     .kpis{ grid-template-columns: repeat(2, 1fr); }
     .glossario-grid{ grid-template-columns: 1fr; }
-    .card{ flex-direction: column; }
+    .card-row{ flex-direction: column; }
     .ring-cell, .id-cell, .card-thumb-cell{ border-right: none; border-bottom: 1px solid var(--border); justify-content: flex-start; flex-direction: row; gap: 14px; }
     .ledger{ grid-template-columns: repeat(2, 1fr); }
     .ledger .led-item:nth-child(3n+1){ border-left: 1px solid var(--border); }
@@ -568,7 +588,10 @@
         <label for="f-imagem">Lâmina da promoção (opcional)</label>
         <input id="f-imagem" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
         <div id="imagem-preview-wrap" hidden>
-          <img id="imagem-preview" alt="Pré-visualização da lâmina">
+          <div class="imagem-preview-box">
+            <img id="imagem-preview" alt="Pré-visualização da lâmina">
+            <span id="imagem-preview-fallback" hidden>não foi possível carregar</span>
+          </div>
           <button type="button" class="pill-btn" id="imagem-remove-btn">Remover imagem</button>
         </div>
       </div>
@@ -638,10 +661,11 @@
     const m = computeMetrics(c);
     return `
       <article class="card" data-id="${id}">
-        <div class="card-actions">
+        <div class="card-toolbar">
           <button class="edit-btn" data-edit="${id}">editar</button>
           <button class="remove-btn" data-remove="${id}">remover</button>
         </div>
+        <div class="card-row">
         <div class="ring-cell">
           <div class="ring" style="--pct:${m.pctAbriu}">
             <span class="ring-label"><b>${Math.round(m.pctAbriu)}%</b><span>ABRIU</span></span>
@@ -649,7 +673,7 @@
         </div>
         ${c.imagemId ? `
         <div class="card-thumb-cell">
-          <img class="card-thumb" src="/api/imagens/${c.imagemId}" alt="Lâmina de ${c.nome || 'promoção'}" data-lightbox="/api/imagens/${c.imagemId}">
+          <img class="card-thumb" src="/api/imagens/${c.imagemId}" alt="Lâmina de ${c.nome || 'promoção'}" data-lightbox="/api/imagens/${c.imagemId}" onerror="this.style.display='none'">
         </div>` : ''}
         <div class="id-cell">
           <div class="badges">
@@ -691,6 +715,7 @@
             <span class="led-value">${c.estado || '—'}</span>
             <span class="led-sub">região do disparo</span>
           </div>
+        </div>
         </div>
       </article>
     `;
@@ -840,12 +865,21 @@
   }
 
   function showImagePreview(src){
-    document.getElementById('imagem-preview').src = src;
+    const img = document.getElementById('imagem-preview');
+    const fallback = document.getElementById('imagem-preview-fallback');
+    fallback.hidden = true;
+    img.hidden = false;
+    img.onerror = () => { img.hidden = true; fallback.hidden = false; };
+    img.src = src;
     document.getElementById('imagem-preview-wrap').hidden = false;
   }
 
   function hideImagePreview(){
-    document.getElementById('imagem-preview').src = '';
+    const img = document.getElementById('imagem-preview');
+    img.onerror = null;
+    img.src = '';
+    img.hidden = false;
+    document.getElementById('imagem-preview-fallback').hidden = true;
     document.getElementById('imagem-preview-wrap').hidden = true;
   }
 
