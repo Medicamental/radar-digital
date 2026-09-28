@@ -10,26 +10,17 @@ Dashboard de disparos de promoção (B2list & Web): quantos enviou, quantos abri
 
 Diferente dos outros radares (que são só leitura, alimentados por JSON gerado por automação), este tem formulário — a responsável pelos envios preenche direto na página, os dados ficam salvos no Worker (KV), e qualquer pessoa com o link vê os cards atualizados (a página sincroniza a cada 15s).
 
-## O que falta para colocar no ar
+## Deploy
 
-1. **Criar o namespace KV** (guarda os disparos):
-   ```
-   npm install wrangler --no-save
-   node node_modules/wrangler/bin/wrangler.js kv namespace create CAMPANHAS
-   ```
-   (rodar sem `npx` — bloqueado por política de grupo nesta máquina). O comando devolve um `id`.
+Já está tudo configurado e no ar em `https://radar-digital.eloapiresoliveira.workers.dev`.
 
-2. **Colar esse `id`** em `wrangler.jsonc`, no lugar de `PREENCHER_COM_O_ID_DO_NAMESPACE_KV`.
+- **Namespace KV:** `CAMPANHAS`, já criado e referenciado em `wrangler.jsonc`.
+- **Deploy automático:** o Worker está conectado ao repositório via Cloudflare Workers Builds (Settings → Builds). Todo `git push` na branch `main` dispara build + deploy sozinho — não precisa rodar `wrangler deploy` manualmente.
+  - Build command: vazio (não há build, é HTML estático)
+  - Deploy command: `npx wrangler deploy`
+  - Root directory: `/`
 
-3. **Deploy**:
-   - **Opção A — Git integration (recomendado, deploy automático a cada push):** no painel da Cloudflare, Workers & Pages → Create → Import a repository → apontar para `Medicamental/radar-digital`. Build command: vazio (não há build). Deploy command: `npx wrangler deploy`. Root directory: `/`.
-   - **Opção B — deploy manual daqui:**
-     ```
-     node node_modules/wrangler/bin/wrangler.js deploy
-     ```
-     usando `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID` como variáveis de ambiente.
-
-4. Confirmar com `curl` que o link `https://radar-digital.eloapiresoliveira.workers.dev` está respondendo antes de considerar concluído.
+Deploy manual (só se o Git integration cair): `npm install wrangler --no-save` (sem `npx`, bloqueado por política de grupo nesta máquina) e depois `node node_modules/wrangler/bin/wrangler.js deploy`, com `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` como variáveis de ambiente.
 
 ## Canais e custo por envio
 
