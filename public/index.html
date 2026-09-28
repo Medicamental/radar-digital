@@ -62,10 +62,8 @@
   }
   .brand{ display: flex; align-items: center; gap: 12px; min-width: 0; }
   .brand-mark{
-    width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
-    background: linear-gradient(135deg, var(--accent), var(--teal));
-    display: flex; align-items: center; justify-content: center;
-    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; color: #08090d;
+    width: 40px; height: 40px; flex-shrink: 0;
+    display: block; object-fit: contain;
     filter: drop-shadow(0 0 14px var(--glow));
   }
   .brand-text{ display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -369,7 +367,7 @@
 
 <header class="topbar">
   <div class="brand">
-    <div class="brand-mark">RD</div>
+    <img class="brand-mark" src="favicon.png" alt="Radar Digital">
     <div class="brand-text">
       <span class="brand-name">Radar Digital</span>
       <span class="brand-sub">B2list &amp; Web · disparos de promoção</span>
@@ -394,7 +392,7 @@
     </div>
     <div class="kpi">
       <span class="kpi-label">Total enviado</span>
-      <span class="kpi-value" id="sum-enviados">— <small>farmácias</small></span>
+      <span class="kpi-value" id="sum-enviados">— <small>clientes</small></span>
     </div>
     <div class="kpi">
       <span class="kpi-label">Abertura média</span>
@@ -559,7 +557,7 @@
           <div class="led-item">
             <span class="led-label">Enviados</span>
             <span class="led-value">${fmtInt(m.enviados)}</span>
-            <span class="led-sub">farmácias</span>
+            <span class="led-sub">clientes</span>
           </div>
           <div class="led-item">
             <span class="led-label">Não abriram</span>
@@ -604,7 +602,7 @@
     });
     const abertura = enviados > 0 ? (abriram / enviados) * 100 : 0;
     document.getElementById('sum-count').textContent = fmtInt(count);
-    document.getElementById('sum-enviados').innerHTML = fmtInt(enviados) + ' <small>farmácias</small>';
+    document.getElementById('sum-enviados').innerHTML = fmtInt(enviados) + ' <small>clientes</small>';
     document.getElementById('sum-abertura').textContent = abertura.toFixed(1).replace('.', ',') + '%';
     document.getElementById('sum-positivacao').textContent = fmtInt(positivacao);
 
@@ -623,7 +621,7 @@
       roiPct.textContent = (roi >= 0 ? '+' : '') + roi.toFixed(0).replace('-', '−') + '%';
       roiPct.classList.toggle('bad', roi < 0);
       roiMult.textContent = `cada R$ 1 investido virou R$ ${multiplo.toFixed(2).replace('.', ',')}`;
-      roiExpl.textContent = `Custou ${fmtMoney(custoDisparo)} para enviar a ${fmtInt(enviados)} farmácias, e isso gerou ${fmtMoney(vendaGerada)} em venda.`;
+      roiExpl.textContent = `Custou ${fmtMoney(custoDisparo)} para enviar a ${fmtInt(enviados)} clientes, e isso gerou ${fmtMoney(vendaGerada)} em venda.`;
     }else{
       roiPct.textContent = '—';
       roiMult.textContent = '(venda − custo) ÷ custo';
