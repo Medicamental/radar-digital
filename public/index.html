@@ -272,12 +272,12 @@
     z-index: 100;
     background: rgba(8,9,13,.86);
     backdrop-filter: blur(4px);
-    display: flex;
     align-items: center;
     justify-content: center;
     padding: 32px;
     cursor: zoom-out;
   }
+  .lightbox:not([hidden]){ display: flex; }
   .lightbox img{
     max-width: min(92vw, 900px);
     max-height: 88vh;
