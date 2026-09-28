@@ -1,0 +1,16 @@
+{
+  "name": "radar-digital",
+  "main": "worker.js",
+  "compatibility_date": "2026-09-28",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "CAMPANHAS",
+      "id": "4649604b73504b84931637a7ec40a47d"
+    }
+  ]
+}
