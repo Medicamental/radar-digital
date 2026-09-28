@@ -400,6 +400,7 @@
   }
   .tag.accent{ background: var(--accent-dim); color: var(--accent); border-color: transparent; }
 
+  .promo-row{ display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
   .promo-title{
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 600;
@@ -425,22 +426,23 @@
   .led-value.bad{ color: var(--red); }
   .led-sub{ font-size: .7rem; color: var(--text-dim); }
 
-  .card-toolbar{
-    display: flex;
-    justify-content: flex-end;
-    gap: 4px;
-    padding: 6px 10px 0;
-  }
-  .card-toolbar button{
+  .edit-btn, .remove-btn{
     font-family: 'Inter', sans-serif;
     font-size: .66rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
     color: var(--text-dim);
-    background: none; border: none; cursor: pointer; padding: 4px 7px;
+    background: none; border: none; cursor: pointer; padding: 2px 0;
+    flex-shrink: 0;
   }
   .edit-btn:hover{ color: var(--accent); }
   .remove-btn:hover{ color: var(--red); }
-  .card-toolbar button:disabled{ opacity: .5; cursor: default; }
+  .edit-btn:disabled, .remove-btn:disabled{ opacity: .5; cursor: default; }
   .card-row{ display: flex; align-items: stretch; }
+  .card-footer{
+    display: flex;
+    justify-content: flex-end;
+    padding: 8px 16px;
+    border-top: 1px solid var(--border);
+  }
 
   footer.page{
     font-size: .72rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;
@@ -661,10 +663,6 @@
     const m = computeMetrics(c);
     return `
       <article class="card" data-id="${id}">
-        <div class="card-toolbar">
-          <button class="edit-btn" data-edit="${id}">editar</button>
-          <button class="remove-btn" data-remove="${id}">remover</button>
-        </div>
         <div class="card-row">
         <div class="ring-cell">
           <div class="ring" style="--pct:${m.pctAbriu}">
@@ -681,7 +679,10 @@
             <span class="tag">${c.canal || '—'}</span>
             <span class="tag">${c.estado || '—'}</span>
           </div>
-          <div class="promo-title">${c.nome || 'Sem nome'}</div>
+          <div class="promo-row">
+            <div class="promo-title">${c.nome || 'Sem nome'}</div>
+            <button class="edit-btn" data-edit="${id}">editar</button>
+          </div>
           <div class="promo-meta">Disparo em ${fmtDate(c.data)} · vigente até ${fmtDate(c.vigencia)}</div>
         </div>
         <div class="ledger">
@@ -716,6 +717,9 @@
             <span class="led-sub">região do disparo</span>
           </div>
         </div>
+        </div>
+        <div class="card-footer">
+          <button class="remove-btn" data-remove="${id}">remover</button>
         </div>
       </article>
     `;
