@@ -233,10 +233,10 @@
   }
   #imagem-preview-wrap{
     margin-top: 8px;
-    display: flex;
     align-items: center;
     gap: 12px;
   }
+  #imagem-preview-wrap:not([hidden]){ display: flex; }
   .imagem-preview-box{
     position: relative;
     width: 120px;
@@ -254,7 +254,6 @@
   #imagem-preview-fallback{
     position: absolute;
     inset: 0;
-    display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
@@ -262,6 +261,7 @@
     font-size: .66rem;
     color: var(--text-dim);
   }
+  #imagem-preview-fallback:not([hidden]){ display: flex; }
 
   /* thumbnail no card + lightbox */
   .card-thumb-cell{
