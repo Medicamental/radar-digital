@@ -400,7 +400,6 @@
   }
   .tag.accent{ background: var(--accent-dim); color: var(--accent); border-color: transparent; }
 
-  .promo-row{ display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
   .promo-title{
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 600;
@@ -440,6 +439,7 @@
   .card-footer{
     display: flex;
     justify-content: flex-end;
+    gap: 14px;
     padding: 8px 16px;
     border-top: 1px solid var(--border);
   }
@@ -679,10 +679,7 @@
             <span class="tag">${c.canal || '—'}</span>
             <span class="tag">${c.estado || '—'}</span>
           </div>
-          <div class="promo-row">
-            <div class="promo-title">${c.nome || 'Sem nome'}</div>
-            <button class="edit-btn" data-edit="${id}">editar</button>
-          </div>
+          <div class="promo-title">${c.nome || 'Sem nome'}</div>
           <div class="promo-meta">Disparo em ${fmtDate(c.data)} · vigente até ${fmtDate(c.vigencia)}</div>
         </div>
         <div class="ledger">
@@ -719,6 +716,7 @@
         </div>
         </div>
         <div class="card-footer">
+          <button class="edit-btn" data-edit="${id}">editar</button>
           <button class="remove-btn" data-remove="${id}">remover</button>
         </div>
       </article>
