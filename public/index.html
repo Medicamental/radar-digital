@@ -214,6 +214,89 @@
   .field input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance: none; margin: 0; }
   .field input[type="number"]{ -moz-appearance: textfield; appearance: textfield; }
   .field select{ color-scheme: dark; }
+  .field input[type="file"]{
+    font-size: .8rem;
+    color: var(--text-dim);
+    padding: 7px 9px;
+  }
+  .field input[type="file"]::file-selector-button{
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: .78rem;
+    color: var(--text);
+    background: var(--border);
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin-right: 10px;
+    cursor: pointer;
+  }
+  #imagem-preview-wrap{
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  #imagem-preview{
+    max-height: 80px;
+    max-width: 140px;
+    object-fit: contain;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+  }
+
+  /* thumbnail no card + lightbox */
+  .card-thumb-cell{
+    flex: 0 0 96px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    border-right: 1px solid var(--border);
+  }
+  .card-thumb{
+    width: 72px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    cursor: zoom-in;
+    transition: transform .15s ease;
+  }
+  .card-thumb:hover{ transform: scale(1.05); }
+
+  .lightbox{
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(8,9,13,.86);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    cursor: zoom-out;
+  }
+  .lightbox img{
+    max-width: min(92vw, 900px);
+    max-height: 88vh;
+    object-fit: contain;
+    border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  }
+  .lightbox-close{
+    position: fixed;
+    top: 20px; right: 24px;
+    font-family: 'Inter', sans-serif;
+    font-size: .8rem; font-weight: 700;
+    color: var(--text);
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 7px 14px;
+    cursor: pointer;
+  }
 
   .form-actions{ grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; margin-top: 2px; }
   .form-status{ font-size: .78rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
@@ -356,7 +439,7 @@
     .kpis{ grid-template-columns: repeat(2, 1fr); }
     .glossario-grid{ grid-template-columns: 1fr; }
     .card{ flex-direction: column; }
-    .ring-cell, .id-cell{ border-right: none; border-bottom: 1px solid var(--border); justify-content: flex-start; flex-direction: row; gap: 14px; }
+    .ring-cell, .id-cell, .card-thumb-cell{ border-right: none; border-bottom: 1px solid var(--border); justify-content: flex-start; flex-direction: row; gap: 14px; }
     .ledger{ grid-template-columns: repeat(2, 1fr); }
     .ledger .led-item:nth-child(3n+1){ border-left: 1px solid var(--border); }
     .ledger .led-item:nth-child(2n+1){ border-left: none; }
@@ -481,6 +564,14 @@
         <label for="f-positivacao">Positivação</label>
         <input id="f-positivacao" type="number" min="0" step="1" placeholder="0" required>
       </div>
+      <div class="field span-2">
+        <label for="f-imagem">Lâmina da promoção (opcional)</label>
+        <input id="f-imagem" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+        <div id="imagem-preview-wrap" hidden>
+          <img id="imagem-preview" alt="Pré-visualização da lâmina">
+          <button type="button" class="pill-btn" id="imagem-remove-btn">Remover imagem</button>
+        </div>
+      </div>
       <div class="form-actions">
         <button type="submit" class="btn" id="submit-btn" style="background:var(--accent);color:#08090d;border-color:var(--accent);">Adicionar disparo</button>
         <span class="form-status" id="form-status"></span>
@@ -510,6 +601,11 @@
 
   <footer class="page">B2list &amp; Web · dados preenchidos manualmente após cada disparo</footer>
 </main>
+
+<div class="lightbox" id="lightbox" hidden>
+  <button type="button" class="lightbox-close" id="lightbox-close">Fechar ✕</button>
+  <img id="lightbox-img" src="" alt="Lâmina em tamanho grande">
+</div>
 
 <script>
 (function(){
@@ -551,6 +647,10 @@
             <span class="ring-label"><b>${Math.round(m.pctAbriu)}%</b><span>ABRIU</span></span>
           </div>
         </div>
+        ${c.imagemId ? `
+        <div class="card-thumb-cell">
+          <img class="card-thumb" src="/api/imagens/${c.imagemId}" alt="Lâmina de ${c.nome || 'promoção'}" data-lightbox="/api/imagens/${c.imagemId}">
+        </div>` : ''}
         <div class="id-cell">
           <div class="badges">
             <span class="tag accent">${c.cluster || 'Sem cluster'}</span>
@@ -652,6 +752,18 @@
     container.querySelectorAll('[data-edit]').forEach(btn => {
       btn.addEventListener('click', () => startEdit(btn.getAttribute('data-edit')));
     });
+    container.querySelectorAll('[data-lightbox]').forEach(img => {
+      img.addEventListener('click', () => openLightbox(img.getAttribute('data-lightbox')));
+    });
+  }
+
+  function openLightbox(src){
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('lightbox').hidden = false;
+  }
+  function closeLightbox(){
+    document.getElementById('lightbox').hidden = true;
+    document.getElementById('lightbox-img').src = '';
   }
 
   let latestDocs = [];
@@ -711,6 +823,9 @@
 
   let editingId = null;
 
+  let currentImagemId = null;
+  let pendingImageFile = null;
+
   function fillForm(data){
     document.getElementById('f-nome').value = data.nome || '';
     document.getElementById('f-canal').value = data.canal || '';
@@ -724,6 +839,23 @@
     document.getElementById('f-positivacao').value = data.positivacao ?? '';
   }
 
+  function showImagePreview(src){
+    document.getElementById('imagem-preview').src = src;
+    document.getElementById('imagem-preview-wrap').hidden = false;
+  }
+
+  function hideImagePreview(){
+    document.getElementById('imagem-preview').src = '';
+    document.getElementById('imagem-preview-wrap').hidden = true;
+  }
+
+  function resetImageState(){
+    currentImagemId = null;
+    pendingImageFile = null;
+    document.getElementById('f-imagem').value = '';
+    hideImagePreview();
+  }
+
   function openForm(){
     document.getElementById('form-card').hidden = false;
     document.getElementById('toggle-form-btn').textContent = 'Fechar';
@@ -734,6 +866,7 @@
     const form = document.getElementById('campaign-form');
     form.reset();
     editingId = null;
+    resetImageState();
     document.getElementById('form-card').hidden = true;
     document.getElementById('toggle-form-btn').textContent = '+ Registrar disparo';
     document.getElementById('panel-form-title').textContent = 'Registrar disparo';
@@ -745,6 +878,15 @@
     if(!entry) return;
     editingId = id;
     fillForm(entry.data);
+    pendingImageFile = null;
+    document.getElementById('f-imagem').value = '';
+    if(entry.data.imagemId){
+      currentImagemId = entry.data.imagemId;
+      showImagePreview('/api/imagens/' + entry.data.imagemId);
+    }else{
+      currentImagemId = null;
+      hideImagePreview();
+    }
     document.getElementById('panel-form-title').textContent = 'Editar disparo';
     document.getElementById('submit-btn').textContent = 'Salvar alterações';
     openForm();
@@ -775,9 +917,34 @@
         return;
       }
       editingId = null;
+      resetImageState();
       document.getElementById('panel-form-title').textContent = 'Registrar disparo';
       document.getElementById('submit-btn').textContent = 'Adicionar disparo';
       openForm();
+    });
+
+    document.getElementById('f-imagem').addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if(!file) return;
+      pendingImageFile = file;
+      const reader = new FileReader();
+      reader.onload = () => showImagePreview(reader.result);
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById('imagem-remove-btn').addEventListener('click', () => {
+      currentImagemId = null;
+      pendingImageFile = null;
+      document.getElementById('f-imagem').value = '';
+      hideImagePreview();
+    });
+
+    document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+    document.getElementById('lightbox').addEventListener('click', (e) => {
+      if(e.target.id === 'lightbox') closeLightbox();
+    });
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape' && !document.getElementById('lightbox').hidden) closeLightbox();
     });
 
     form.addEventListener('submit', async (e) => {
@@ -813,12 +980,29 @@
       btn.disabled = true;
       status.textContent = 'Salvando…';
       try{
+        let imagemId = currentImagemId;
+        if(pendingImageFile){
+          status.textContent = 'Enviando imagem…';
+          const upRes = await fetch('/api/imagens', {
+            method: 'POST',
+            headers: { 'content-type': pendingImageFile.type },
+            body: pendingImageFile,
+          });
+          if(!upRes.ok){
+            const upErr = await upRes.json().catch(() => ({}));
+            throw new Error(upErr.error || ('HTTP ' + upRes.status));
+          }
+          const upData = await upRes.json();
+          imagemId = upData.id;
+        }
+
+        status.textContent = 'Salvando…';
         const url = editingId ? '/api/campanhas/' + encodeURIComponent(editingId) : '/api/campanhas';
         const method = editingId ? 'PUT' : 'POST';
         const res = await fetch(url, {
           method,
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ nome, canal, data, vigencia, estado, cluster, enviados, abriram, vendaGerada, positivacao }),
+          body: JSON.stringify({ nome, canal, data, vigencia, estado, cluster, enviados, abriram, vendaGerada, positivacao, imagemId }),
         });
         if(!res.ok) throw new Error('HTTP ' + res.status);
         status.textContent = editingId ? 'Disparo atualizado.' : 'Disparo adicionado.';
