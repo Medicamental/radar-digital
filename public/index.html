@@ -178,6 +178,19 @@
   }
   .page-heading p{ margin: 0; font-size: .88rem; color: var(--text-dim); max-width: 64ch; }
 
+  .data-notice{
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 11px 16px;
+    border-radius: 12px;
+    background: #2b2010;
+    border: 1px solid rgba(255,176,32,.35);
+    color: #f3d08a;
+    font-size: .82rem;
+  }
+  .data-notice svg{ width: 18px; height: 18px; color: var(--amber); margin-top: 1px; }
+
   /* ---------- selection banner ---------- */
   .selection-banner{
     display: flex;
@@ -960,6 +973,11 @@
     <p>Um registro por disparo: cobertura, abertura e retorno de venda frente ao custo de envio.</p>
   </div>
 
+  <div class="data-notice" id="data-notice" role="status" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+    <span>Os disparos registrados antes de hoje estão temporariamente ocultos e voltam a aparecer sozinhos após as 21h. Os novos registros já funcionam normalmente.</span>
+  </div>
+
   <div class="selection-banner" id="selection-banner" role="status" hidden>
     <span id="selection-text"></span>
     <button type="button" class="btn btn-ghost btn-sm" id="selection-clear">Limpar seleção</button>
@@ -1199,7 +1217,7 @@
   const wait = ms => new Promise(r => setTimeout(r, ms));
 
   const CUSTO_POR_CANAL = { 'B2list': 0.30, 'Web': 0.04 };
-  const POLL_MS = 15000;
+  const POLL_MS = 30000;
   const PENDING_TTL_MS = 120000;
   const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
   const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
@@ -1584,6 +1602,7 @@
     try{
       const res = await fetch('/api/campanhas', { cache: 'no-store' });
       if(!res.ok) throw new Error('HTTP ' + res.status);
+      $('data-notice').hidden = res.headers.get('x-radar-migration') !== 'pending';
       lastRaw = await res.json();
       loaded = true;
       applyData(force);

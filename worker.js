@@ -1,14 +1,20 @@
-function json(data, status = 200) {
+function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'content-type': 'application/json; charset=utf-8' },
+    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...extraHeaders },
   });
 }
 
 const ALLOWED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MiB
 
-async function listCampanhas(env) {
+// Todos os disparos ficam num único documento: o plano gratuito do KV permite só 1.000 list()/dia,
+// e listar a cada atualização da página esgotava a cota. get() tem cota de 100.000/dia.
+const INDEX_KEY = 'index:campanhas';
+
+const sortByDate = items => items.sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+
+async function legacyList(env) {
   const items = [];
   let cursor;
   do {
@@ -17,10 +23,41 @@ async function listCampanhas(env) {
       const value = await env.CAMPANHAS.get(key.name, 'json');
       if (value) items.push({ id: key.name.slice('campanha:'.length), ...value });
     }
-    cursor = page.cursor;
+    cursor = page.list_complete ? undefined : page.cursor;
   } while (cursor);
-  items.sort((a, b) => (b.data || '').localeCompare(a.data || ''));
   return items;
+}
+
+// Carrega o índice; enquanto os registros antigos (uma chave por disparo) não tiverem sido
+// incorporados, tenta migrá-los. Se a cota de list() do dia já acabou, segue com o que o índice tem.
+async function loadIndex(env) {
+  const idx = (await env.CAMPANHAS.get(INDEX_KEY, 'json')) || { migrated: false, items: [], deleted: [] };
+  if (idx.migrated) return idx;
+  try {
+    const legacy = await legacyList(env);
+    const byId = new Map(legacy.map(d => [d.id, d]));
+    for (const item of idx.items) byId.set(item.id, item);
+    for (const id of idx.deleted || []) byId.delete(id);
+    const migrated = { migrated: true, items: sortByDate([...byId.values()]) };
+    await env.CAMPANHAS.put(INDEX_KEY, JSON.stringify(migrated));
+    return migrated;
+  } catch (err) {
+    return { ...idx, deleted: idx.deleted || [], pending: true };
+  }
+}
+
+async function saveIndex(env, idx) {
+  const { pending, ...rest } = idx;
+  rest.items = sortByDate(rest.items);
+  await env.CAMPANHAS.put(INDEX_KEY, JSON.stringify(rest));
+}
+
+async function findCampanha(env, idx, id) {
+  const inIndex = idx.items.find(d => d.id === id);
+  if (inIndex) return inIndex;
+  if (idx.migrated || (idx.deleted || []).includes(id)) return null;
+  const legacy = await env.CAMPANHAS.get('campanha:' + id, 'json');
+  return legacy ? { id, ...legacy } : null;
 }
 
 function campanhaDocFromBody(body) {
@@ -39,46 +76,46 @@ function campanhaDocFromBody(body) {
   };
 }
 
+async function readBody(request) {
+  try {
+    const body = await request.json();
+    const required = ['nome', 'canal', 'data', 'vigencia', 'estado', 'cluster'];
+    for (const field of required) {
+      if (!body[field]) return { error: `Campo obrigatório ausente: ${field}` };
+    }
+    return { body };
+  } catch {
+    return { error: 'JSON inválido' };
+  }
+}
+
 async function handleCampanhas(request, env, url) {
   const parts = url.pathname.split('/').filter(Boolean); // ['api','campanhas', maybe id]
   const id = parts[2];
 
   if (request.method === 'GET' && !id) {
-    const items = await listCampanhas(env);
-    return json(items);
+    const idx = await loadIndex(env);
+    return json(sortByDate([...idx.items]), 200, idx.pending ? { 'x-radar-migration': 'pending' } : {});
   }
 
   if (request.method === 'POST' && !id) {
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return json({ error: 'JSON inválido' }, 400);
-    }
-    const required = ['nome', 'canal', 'data', 'vigencia', 'estado', 'cluster'];
-    for (const field of required) {
-      if (!body[field]) return json({ error: `Campo obrigatório ausente: ${field}` }, 400);
-    }
-    const doc = { ...campanhaDocFromBody(body), criadoEm: new Date().toISOString() };
-    const newId = crypto.randomUUID();
-    await env.CAMPANHAS.put('campanha:' + newId, JSON.stringify(doc));
-    return json({ id: newId, ...doc }, 201);
+    const { body, error } = await readBody(request);
+    if (error) return json({ error }, 400);
+    const idx = await loadIndex(env);
+    const doc = { id: crypto.randomUUID(), ...campanhaDocFromBody(body), criadoEm: new Date().toISOString() };
+    idx.items.push(doc);
+    await saveIndex(env, idx);
+    return json(doc, 201);
   }
 
   if (request.method === 'PUT' && id) {
-    const existing = await env.CAMPANHAS.get('campanha:' + id, 'json');
+    const { body, error } = await readBody(request);
+    if (error) return json({ error }, 400);
+    const idx = await loadIndex(env);
+    const existing = await findCampanha(env, idx, id);
     if (!existing) return json({ error: 'Disparo não encontrado' }, 404);
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return json({ error: 'JSON inválido' }, 400);
-    }
-    const required = ['nome', 'canal', 'data', 'vigencia', 'estado', 'cluster'];
-    for (const field of required) {
-      if (!body[field]) return json({ error: `Campo obrigatório ausente: ${field}` }, 400);
-    }
     const doc = {
+      id,
       ...campanhaDocFromBody(body),
       criadoEm: existing.criadoEm,
       atualizadoEm: new Date().toISOString(),
@@ -86,16 +123,22 @@ async function handleCampanhas(request, env, url) {
     if (existing.imagemId && existing.imagemId !== doc.imagemId) {
       await env.CAMPANHAS.delete('imagem:' + existing.imagemId).catch(() => {});
     }
-    await env.CAMPANHAS.put('campanha:' + id, JSON.stringify(doc));
-    return json({ id, ...doc });
+    idx.items = idx.items.filter(d => d.id !== id);
+    idx.items.push(doc);
+    await saveIndex(env, idx);
+    return json(doc);
   }
 
   if (request.method === 'DELETE' && id) {
-    const existing = await env.CAMPANHAS.get('campanha:' + id, 'json');
+    const idx = await loadIndex(env);
+    const existing = await findCampanha(env, idx, id);
     if (existing?.imagemId) {
       await env.CAMPANHAS.delete('imagem:' + existing.imagemId).catch(() => {});
     }
-    await env.CAMPANHAS.delete('campanha:' + id);
+    idx.items = idx.items.filter(d => d.id !== id);
+    if (!idx.migrated) idx.deleted = [...new Set([...(idx.deleted || []), id])];
+    await saveIndex(env, idx);
+    await env.CAMPANHAS.delete('campanha:' + id).catch(() => {});
     return json({ ok: true });
   }
 
@@ -138,11 +181,19 @@ async function handleImagens(request, env, url) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname.startsWith('/api/campanhas')) {
-      return handleCampanhas(request, env, url);
-    }
-    if (url.pathname.startsWith('/api/imagens')) {
-      return handleImagens(request, env, url);
+    try {
+      if (url.pathname.startsWith('/api/campanhas')) {
+        return await handleCampanhas(request, env, url);
+      }
+      if (url.pathname.startsWith('/api/imagens')) {
+        return await handleImagens(request, env, url);
+      }
+    } catch (err) {
+      const quota = /limit exceeded/i.test(String(err && err.message));
+      return json(
+        { error: quota ? 'Limite diário do banco de dados atingido. Tente novamente mais tarde.' : 'Erro interno ao acessar os dados.' },
+        quota ? 503 : 500,
+      );
     }
     return env.ASSETS.fetch(request);
   },
