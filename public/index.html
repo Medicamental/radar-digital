@@ -715,7 +715,6 @@
           <div class="badges">
             ${splitTags(c.cluster, 'Sem cluster').map(t => `<span class="tag accent">${t}</span>`).join('')}
             <span class="tag">${c.canal || '—'}</span>
-            <span class="tag">${c.estado || '—'}</span>
           </div>
           <div class="promo-title">${c.nome || 'Sem nome'}</div>
           <div class="promo-meta">Disparo em ${fmtDate(c.data)} · vigente até ${fmtDate(c.vigencia)}</div>
@@ -747,9 +746,9 @@
             <span class="led-sub">${m.pctPositivacao.toFixed(1)}% dos enviados</span>
           </div>
           <div class="led-item">
-            <span class="led-label">Ticket médio</span>
-            <span class="led-value">${m.positivacao > 0 ? fmtMoney(m.vendaGerada / m.positivacao) : '—'}</span>
-            <span class="led-sub">por cliente que comprou</span>
+            <span class="led-label">Estado</span>
+            <span class="led-value">${c.estado || '—'}</span>
+            <span class="led-sub">região do disparo</span>
           </div>
         </div>
         </div>
