@@ -470,8 +470,54 @@
     padding-top: 8px;
   }
   .toolbar-filters{ display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
-  .toolbar-filters .field{ width: 210px; }
-  .results-count{ font-size: .8rem; color: var(--text-dim); padding-bottom: 10px; }
+  .toolbar-filters .field{ width: 180px; }
+  .toolbar-filters .field-search{ width: 260px; }
+  .search-wrap{ position: relative; }
+  .search-wrap svg{
+    position: absolute; left: 12px; top: 50%;
+    width: 16px; height: 16px;
+    transform: translateY(-50%);
+    color: var(--text-mute);
+    pointer-events: none;
+    transition: color .15s;
+  }
+  .search-wrap .control{ padding-left: 36px; }
+  .search-wrap:focus-within svg, .search-wrap .control.has-value + svg{ color: var(--accent); }
+  input[type="search"].control::-webkit-search-cancel-button{
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    cursor: pointer;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b8f9c' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M18 6 6 18M6 6l12 12'/%3E%3C/svg%3E") center / 14px no-repeat;
+  }
+  mark{ background: rgba(77,141,255,.28); color: inherit; border-radius: 3px; padding: 0 1px; }
+  .toolbar-sort{ display: flex; align-items: flex-end; gap: 16px; margin-left: auto; }
+  .toolbar-sort .field{ width: auto; }
+  .sort-control{ display: flex; }
+  .sort-control .control{ width: 190px; border-radius: 10px 0 0 10px; }
+  .sort-dir{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 40px;
+    padding: 0 12px;
+    margin-left: -1px;
+    border: 1px solid var(--border);
+    border-radius: 0 10px 10px 0;
+    background: var(--panel-2);
+    color: var(--text-soft);
+    font-size: .78rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color .15s, border-color .15s, background .15s;
+  }
+  .sort-dir:hover{ color: var(--text); border-color: var(--border-strong); background: var(--panel-3); }
+  .sort-dir svg{ width: 15px; height: 15px; transition: transform .25s var(--ease); }
+  .sort-dir.is-asc svg{ transform: rotate(180deg); }
+  .metric.is-sorted .metric-label{ color: var(--accent); }
+  .metric.is-sorted{ background: linear-gradient(180deg, rgba(77,141,255,.07), transparent); }
+  .lead-sub.is-sorted, .lead-sub.is-sorted b{ color: var(--accent); }
+  .results-count{ font-size: .8rem; color: var(--text-dim); padding-bottom: 10px; white-space: nowrap; }
   .results-count strong{ color: var(--text); font-weight: 700; }
 
   /* ---------- cards ---------- */
@@ -506,8 +552,10 @@
   .card-lead{
     flex: 0 0 auto;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 8px;
     padding: 18px 22px;
     border-right: 1px solid var(--border);
   }
@@ -522,6 +570,8 @@
   .cards.is-entering .ring{ animation: ring-fill .9s var(--ease) both; animation-delay: calc(var(--i, 0) * 45ms + 120ms); }
   @keyframes ring-fill{ from{ --pct: 0; } }
   .ring::after{ content: ""; position: absolute; inset: 6px; border-radius: 50%; background: #11141d; }
+  .lead-sub{ font-size: .68rem; color: var(--text-dim); text-align: center; white-space: nowrap; line-height: 1.2; }
+  .lead-sub b{ display: block; font-family: var(--font-mono); font-size: .8rem; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
   .ring-label{
     position: absolute; inset: 0; z-index: 1;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -842,6 +892,10 @@
     .selection-banner{ flex-direction: column; align-items: flex-start; padding: 12px 14px; }
     .toolbar-filters{ width: 100%; }
     .toolbar-filters .field{ flex: 1 1 140px; width: auto; }
+    .toolbar-filters .field-search{ flex: 1 1 100%; width: auto; }
+    .toolbar-sort{ width: 100%; margin-left: 0; flex-direction: column-reverse; align-items: stretch; gap: 10px; }
+    .toolbar-sort .field{ width: 100%; }
+    .sort-control .control{ width: auto; flex: 1; }
     .toolbar-filters .btn{ flex: 1 1 100%; }
     .results-count{ padding-bottom: 0; }
     .card-lead{ padding: 14px 14px; }
@@ -1079,9 +1133,36 @@
         <label class="field-label" for="filter-data">Data do disparo</label>
         <input class="control" id="filter-data" type="date">
       </div>
+      <div class="field field-search">
+        <label class="field-label" for="filter-busca">Buscar</label>
+        <div class="search-wrap">
+          <input class="control" id="filter-busca" type="search" placeholder="Nome do disparo ou cluster" autocomplete="off" spellcheck="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        </div>
+      </div>
       <button type="button" class="btn btn-ghost" id="filter-clear" disabled>Limpar filtros</button>
     </div>
-    <div class="results-count" id="results-count" aria-live="polite"></div>
+    <div class="toolbar-sort">
+      <div class="results-count" id="results-count" aria-live="polite"></div>
+      <div class="field">
+        <label class="field-label" for="sort-key">Ordenar por</label>
+        <div class="sort-control">
+          <select class="control" id="sort-key">
+            <option value="data">Data do disparo</option>
+            <option value="vendaGerada">Venda gerada</option>
+            <option value="positivacao">Positivação</option>
+            <option value="custoDisparo">Custo do disparo</option>
+            <option value="enviados">Enviados</option>
+            <option value="abriram">Abriram</option>
+            <option value="naoAbriram">Não abriram</option>
+          </select>
+          <button type="button" class="sort-dir" id="sort-dir" aria-label="Maior primeiro. Clique para inverter a ordem">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+            <span id="sort-dir-label">Maior</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section class="cards" id="cards" aria-label="Disparos registrados" aria-busy="true">
@@ -1141,11 +1222,37 @@
   let firstRender = true;
   const selectedIds = new Set();
   const pending = new Map();
+  const SORT_KEYS = ['data', 'vendaGerada', 'positivacao', 'custoDisparo', 'enviados', 'abriram', 'naoAbriram'];
+  let sortKey = 'data';
+  let sortDir = 'desc';
+  try{
+    const saved = JSON.parse(localStorage.getItem('radar-digital-sort') || 'null');
+    if(saved && SORT_KEYS.includes(saved.key)){ sortKey = saved.key; sortDir = saved.dir === 'asc' ? 'asc' : 'desc'; }
+  }catch(e){}
 
   let editingId = null;
   let currentImagemId = null;
   let pendingImageFile = null;
   let lightboxTrigger = null;
+
+  const foldChar = ch => ch.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().charAt(0) || ch;
+  const fold = s => Array.from(String(s || ''), foldChar).join('');
+  const searchTerm = () => fold($('filter-busca').value.trim());
+
+  // Escapa o texto e envolve o trecho buscado em <mark>; foldChar mantém 1:1 os índices do texto original.
+  function highlight(text){
+    const raw = String(text ?? '');
+    const term = searchTerm();
+    if(!term) return esc(raw);
+    const chars = Array.from(raw);
+    const folded = chars.map(foldChar).join('');
+    let out = '', i = 0, at;
+    while((at = folded.indexOf(term, i)) !== -1){
+      out += esc(chars.slice(i, at).join('')) + '<mark>' + esc(chars.slice(at, at + term.length).join('')) + '</mark>';
+      i = at + term.length;
+    }
+    return out + esc(chars.slice(i).join(''));
+  }
 
   function splitTags(str, fallback){
     const items = String(str || '').split(/[,·]/).map(s => s.trim()).filter(Boolean);
@@ -1193,8 +1300,9 @@
 
   /* ---------- cards ---------- */
 
-  function metricHtml(label, value, sub, cls = ''){
-    return `<div class="metric"><span class="metric-label">${label}</span><span class="metric-value ${cls}">${value}</span><span class="metric-sub">${sub}</span></div>`;
+  function metricHtml(label, value, sub, cls = '', key = ''){
+    const sorted = key && key === sortKey ? ' is-sorted' : '';
+    return `<div class="metric${sorted}"><span class="metric-label">${label}</span><span class="metric-value ${cls}">${value}</span><span class="metric-sub">${sub}</span></div>`;
   }
 
   function cardHtml(id, c, index){
@@ -1212,6 +1320,7 @@
             <div class="ring" style="--pct:${m.pctAbriu.toFixed(1)}" role="img" aria-label="${pct}% abriram">
               <span class="ring-label" aria-hidden="true"><b>${pct}%</b><span>abriu</span></span>
             </div>
+            <span class="lead-sub${sortKey === 'abriram' ? ' is-sorted' : ''}"><b>${fmtInt(m.abriram)}</b>${m.abriram === 1 ? 'abriu' : 'abriram'}</span>
           </div>
           <div class="card-id">
             ${c.imagemId ? `
@@ -1221,21 +1330,21 @@
             </button>` : ''}
             <div class="card-id-text">
               <div class="badges">
-                ${tags.map(t => `<span class="tag tag-accent" title="${esc(t)}">${esc(t)}</span>`).join('')}
+                ${tags.map(t => `<span class="tag tag-accent" title="${esc(t)}">${highlight(t)}</span>`).join('')}
                 <span class="tag tag-canal" data-canal="${esc(canal)}">${esc(canal)}</span>
               </div>
-              <h3 class="promo-title">${esc(nome)}</h3>
+              <h3 class="promo-title">${highlight(nome)}</h3>
               <p class="promo-meta">
                 <span>Disparo ${fmtDate(c.data)}</span><span class="sep" aria-hidden="true">·</span><span>Vigente até ${fmtDate(c.vigencia)}</span>
               </p>
             </div>
           </div>
           <div class="ledger">
-            ${metricHtml('Enviados', fmtInt(m.enviados), 'clientes')}
-            ${metricHtml('Não abriram', fmtInt(m.naoAbriram), `${fmtPct(m.pctNao)} sem retorno`, m.pctNao >= 50 ? 'bad' : '')}
-            ${metricHtml('Custo do disparo', fmtMoney(m.custoDisparo), `${esc(canal)} · R$ ${m.custoPorEnvio.toFixed(2).replace('.', ',')}/envio`)}
-            ${metricHtml('Venda gerada', fmtMoney(m.vendaGerada), 'informado pela equipe')}
-            ${metricHtml('Positivação', fmtInt(m.positivacao), `${fmtPct(m.pctPositivacao)} dos enviados`, 'good')}
+            ${metricHtml('Enviados', fmtInt(m.enviados), 'clientes', '', 'enviados')}
+            ${metricHtml('Não abriram', fmtInt(m.naoAbriram), `${fmtPct(m.pctNao)} sem retorno`, m.pctNao >= 50 ? 'bad' : '', 'naoAbriram')}
+            ${metricHtml('Custo do disparo', fmtMoney(m.custoDisparo), `${esc(canal)} · R$ ${m.custoPorEnvio.toFixed(2).replace('.', ',')}/envio`, '', 'custoDisparo')}
+            ${metricHtml('Venda gerada', fmtMoney(m.vendaGerada), 'informado pela equipe', '', 'vendaGerada')}
+            ${metricHtml('Positivação', fmtInt(m.positivacao), `${fmtPct(m.pctPositivacao)} dos enviados`, 'good', 'positivacao')}
             ${metricHtml('Estado', esc(c.estado || '—'), 'região do disparo', 'is-text')}
           </div>
         </div>
@@ -1303,15 +1412,17 @@
   /* ---------- summary ---------- */
 
   function filtersActive(){
-    return Boolean($('filter-canal').value || $('filter-data').value);
+    return Boolean($('filter-canal').value || $('filter-data').value || searchTerm());
   }
 
   function applyFilters(items){
     const canal = $('filter-canal').value;
     const dataDisparo = $('filter-data').value;
+    const term = searchTerm();
     return items.filter(({ data }) => {
       if(canal && data.canal !== canal) return false;
       if(dataDisparo && data.data !== dataDisparo) return false;
+      if(term && !fold(data.nome).includes(term) && !fold(data.cluster).includes(term)) return false;
       return true;
     });
   }
@@ -1380,6 +1491,7 @@
     $('filter-clear').disabled = !active;
     $('filter-canal').classList.toggle('has-value', Boolean($('filter-canal').value));
     $('filter-data').classList.toggle('has-value', Boolean($('filter-data').value));
+    $('filter-busca').classList.toggle('has-value', Boolean(searchTerm()));
   }
 
   function updateSelectionSummary(){
@@ -1391,8 +1503,34 @@
     renderToolbar(filtered.length);
   }
 
+  function sortItems(items){
+    const value = d => sortKey === 'data' ? (d.data || '') : computeMetrics(d)[sortKey];
+    return items.slice().sort((a, b) => {
+      const va = value(a.data), vb = value(b.data);
+      let cmp = sortKey === 'data' ? String(va).localeCompare(String(vb)) : va - vb;
+      if(cmp === 0) cmp = (a.data.data || '').localeCompare(b.data.data || '');
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }
+
+  function updateSortUI(){
+    const asc = sortDir === 'asc';
+    const label = sortKey === 'data' ? (asc ? 'Antigo' : 'Recente') : (asc ? 'Menor' : 'Maior');
+    const full = sortKey === 'data' ? (asc ? 'Mais antigos primeiro' : 'Mais recentes primeiro') : (asc ? 'Menor primeiro' : 'Maior primeiro');
+    $('sort-key').value = sortKey;
+    $('sort-key').classList.toggle('has-value', sortKey !== 'data');
+    $('sort-dir-label').textContent = label;
+    $('sort-dir').classList.toggle('is-asc', asc);
+    $('sort-dir').setAttribute('aria-label', `${full}. Clique para inverter a ordem`);
+    $('sort-dir').title = full;
+  }
+
+  function saveSort(){
+    try{ localStorage.setItem('radar-digital-sort', JSON.stringify({ key: sortKey, dir: sortDir })); }catch(e){}
+  }
+
   function renderAll(){
-    renderCards(applyFilters(latestDocs));
+    renderCards(sortItems(applyFilters(latestDocs)));
     updateSelectionSummary();
   }
 
@@ -1801,9 +1939,35 @@
 
     $('filter-canal').addEventListener('change', renderAll);
     $('filter-data').addEventListener('change', renderAll);
+    updateSortUI();
+    const resort = () => {
+      saveSort();
+      updateSortUI();
+      firstRender = true;
+      renderAll();
+    };
+    $('sort-key').addEventListener('change', (e) => {
+      sortKey = e.target.value;
+      sortDir = 'desc';
+      resort();
+    });
+    $('sort-dir').addEventListener('click', () => {
+      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      resort();
+    });
+
+    let searchTimer;
+    $('filter-busca').addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(renderAll, 140);
+    });
+    $('filter-busca').addEventListener('keydown', (e) => {
+      if(e.key === 'Escape' && e.target.value){ e.target.value = ''; renderAll(); }
+    });
     $('filter-clear').addEventListener('click', () => {
       $('filter-canal').value = '';
       $('filter-data').value = '';
+      $('filter-busca').value = '';
       renderAll();
     });
     $('selection-clear').addEventListener('click', () => {
