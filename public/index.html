@@ -457,24 +457,19 @@
     padding: 8px 16px;
     border-top: 1px solid var(--border);
   }
-  .card-footer-actions{ display: flex; gap: 14px; }
-  .select-label{
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: .7rem;
+  .card-footer-actions{ display: flex; gap: 14px; z-index: 1; position: relative; }
+  .select-hint{
+    font-size: .68rem;
     font-weight: 600;
     letter-spacing: .03em;
     text-transform: uppercase;
     color: var(--text-dim);
-    cursor: pointer;
+    opacity: .7;
   }
-  .select-label input[type="checkbox"]{
-    width: 14px; height: 14px;
-    accent-color: var(--accent);
-    cursor: pointer;
-  }
+  .card{ cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease; }
+  .card:hover{ border-color: var(--text-dim); }
   .card.is-selected{ border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .card.is-selected:hover{ border-color: var(--accent); }
 
   footer.page{
     font-size: .72rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;
@@ -752,17 +747,14 @@
             <span class="led-sub">${m.pctPositivacao.toFixed(1)}% dos enviados</span>
           </div>
           <div class="led-item">
-            <span class="led-label">Estado</span>
-            <span class="led-value">${c.estado || '—'}</span>
-            <span class="led-sub">região do disparo</span>
+            <span class="led-label">Ticket médio</span>
+            <span class="led-value">${m.positivacao > 0 ? fmtMoney(m.vendaGerada / m.positivacao) : '—'}</span>
+            <span class="led-sub">por cliente que comprou</span>
           </div>
         </div>
         </div>
         <div class="card-footer">
-          <label class="select-label">
-            <input type="checkbox" class="card-select" data-select="${id}" ${selectedIds.has(id) ? 'checked' : ''}>
-            comparar
-          </label>
+          <span class="select-hint">clique no card para comparar</span>
           <div class="card-footer-actions">
             <button class="edit-btn" data-edit="${id}">editar</button>
             <button class="remove-btn" data-remove="${id}">remover</button>
@@ -829,21 +821,29 @@
       btn.addEventListener('click', () => startEdit(btn.getAttribute('data-edit')));
     });
     container.querySelectorAll('[data-lightbox]').forEach(img => {
-      img.addEventListener('click', () => openLightbox(img.getAttribute('data-lightbox')));
-    });
-    container.querySelectorAll('[data-select]').forEach(checkbox => {
-      checkbox.addEventListener('change', () => {
-        const cardId = checkbox.getAttribute('data-select');
-        if(checkbox.checked) selectedIds.add(cardId);
-        else selectedIds.delete(cardId);
-        checkbox.closest('.card').classList.toggle('is-selected', checkbox.checked);
-        const filtered = applyFilters(latestDocs);
-        const selected = filtered.filter(({id}) => selectedIds.has(id));
-        const summarySource = selected.length > 0 ? selected : filtered;
-        renderSummary(summarySource.map(x => x.data));
-        renderSelectionBanner(selected.length, filtered.length);
+      img.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openLightbox(img.getAttribute('data-lightbox'));
       });
     });
+    container.querySelectorAll('.card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        if(e.target.closest('button, [data-lightbox]')) return;
+        const cardId = card.getAttribute('data-id');
+        if(selectedIds.has(cardId)) selectedIds.delete(cardId);
+        else selectedIds.add(cardId);
+        card.classList.toggle('is-selected', selectedIds.has(cardId));
+        updateSelectionSummary();
+      });
+    });
+  }
+
+  function updateSelectionSummary(){
+    const filtered = applyFilters(latestDocs);
+    const selected = filtered.filter(({id}) => selectedIds.has(id));
+    const summarySource = selected.length > 0 ? selected : filtered;
+    renderSummary(summarySource.map(x => x.data));
+    renderSelectionBanner(selected.length, filtered.length);
   }
 
   function openLightbox(src){
@@ -883,10 +883,7 @@
   function renderAll(){
     const filtered = applyFilters(latestDocs);
     renderCards(filtered);
-    const selected = filtered.filter(({id}) => selectedIds.has(id));
-    const summarySource = selected.length > 0 ? selected : filtered;
-    renderSummary(summarySource.map(x => x.data));
-    renderSelectionBanner(selected.length, filtered.length);
+    updateSelectionSummary();
   }
 
   function setSyncLabel(text, ok){
