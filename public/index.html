@@ -102,6 +102,19 @@
   .page-heading h1{ font-family: 'Space Grotesk', sans-serif; font-size: 1.5rem; font-weight: 700; margin: 0; }
   .page-heading p{ margin: 0; font-size: .88rem; color: var(--text-dim); max-width: 62ch; }
 
+  .selection-banner{
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-size: .82rem;
+    color: var(--text);
+  }
+  .selection-banner:not([hidden]){ display: flex; }
+
   /* KPI summary */
   .kpis{
     display: grid;
@@ -438,11 +451,30 @@
   .card-row{ display: flex; align-items: stretch; }
   .card-footer{
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
     gap: 14px;
     padding: 8px 16px;
     border-top: 1px solid var(--border);
   }
+  .card-footer-actions{ display: flex; gap: 14px; }
+  .select-label{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    cursor: pointer;
+  }
+  .select-label input[type="checkbox"]{
+    width: 14px; height: 14px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .card.is-selected{ border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 
   footer.page{
     font-size: .72rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;
@@ -460,6 +492,7 @@
     header.topbar{ padding: 14px 18px; }
     .kpis{ grid-template-columns: repeat(2, 1fr); }
     .glossario-grid{ grid-template-columns: 1fr; }
+    .selection-banner{ flex-direction: column; align-items: flex-start; }
     .card-row{ flex-direction: column; }
     .ring-cell, .id-cell, .card-thumb-cell{ border-right: none; border-bottom: 1px solid var(--border); justify-content: flex-start; flex-direction: row; gap: 14px; }
     .ledger{ grid-template-columns: repeat(2, 1fr); }
@@ -492,6 +525,11 @@
   <div class="page-heading">
     <h1>Disparos registrados</h1>
     <p>Um registro por disparo: cobertura, abertura e retorno de venda frente ao custo de envio.</p>
+  </div>
+
+  <div class="selection-banner" id="selection-banner" hidden>
+    <span id="selection-text"></span>
+    <button type="button" class="pill-btn" id="selection-clear">Limpar seleção</button>
   </div>
 
   <section class="kpis" aria-label="Resumo geral">
@@ -567,8 +605,8 @@
         <input id="f-estado" type="text" placeholder="Ex: SP ou PR / SC" required>
       </div>
       <div class="field">
-        <label for="f-cluster">Cluster</label>
-        <input id="f-cluster" type="text" placeholder="Ex: Cluster A · Alto giro" required>
+        <label for="f-cluster">Cluster (separe por vírgula se houver mais de um)</label>
+        <input id="f-cluster" type="text" placeholder="Ex: Novo Digital, Recorrente, Super Digital" required>
       </div>
       <div class="field">
         <label for="f-enviados">Enviados</label>
@@ -645,6 +683,11 @@
   const CUSTO_POR_CANAL = { 'B2list': 0.30, 'Web': 0.04 };
   const POLL_MS = 15000;
 
+  function splitTags(str, fallback){
+    const items = String(str || '').split(/[,·]/).map(s => s.trim()).filter(Boolean);
+    return items.length ? items : [fallback];
+  }
+
   function computeMetrics(c){
     const enviados = Number(c.enviados) || 0;
     const abriram = Number(c.abriram) || 0;
@@ -662,7 +705,7 @@
   function cardHtml(id, c){
     const m = computeMetrics(c);
     return `
-      <article class="card" data-id="${id}">
+      <article class="card${selectedIds.has(id) ? ' is-selected' : ''}" data-id="${id}">
         <div class="card-row">
         <div class="ring-cell">
           <div class="ring" style="--pct:${m.pctAbriu}">
@@ -675,7 +718,7 @@
         </div>` : ''}
         <div class="id-cell">
           <div class="badges">
-            <span class="tag accent">${c.cluster || 'Sem cluster'}</span>
+            ${splitTags(c.cluster, 'Sem cluster').map(t => `<span class="tag accent">${t}</span>`).join('')}
             <span class="tag">${c.canal || '—'}</span>
             <span class="tag">${c.estado || '—'}</span>
           </div>
@@ -716,8 +759,14 @@
         </div>
         </div>
         <div class="card-footer">
-          <button class="edit-btn" data-edit="${id}">editar</button>
-          <button class="remove-btn" data-remove="${id}">remover</button>
+          <label class="select-label">
+            <input type="checkbox" class="card-select" data-select="${id}" ${selectedIds.has(id) ? 'checked' : ''}>
+            comparar
+          </label>
+          <div class="card-footer-actions">
+            <button class="edit-btn" data-edit="${id}">editar</button>
+            <button class="remove-btn" data-remove="${id}">remover</button>
+          </div>
         </div>
       </article>
     `;
@@ -782,6 +831,19 @@
     container.querySelectorAll('[data-lightbox]').forEach(img => {
       img.addEventListener('click', () => openLightbox(img.getAttribute('data-lightbox')));
     });
+    container.querySelectorAll('[data-select]').forEach(checkbox => {
+      checkbox.addEventListener('change', () => {
+        const cardId = checkbox.getAttribute('data-select');
+        if(checkbox.checked) selectedIds.add(cardId);
+        else selectedIds.delete(cardId);
+        checkbox.closest('.card').classList.toggle('is-selected', checkbox.checked);
+        const filtered = applyFilters(latestDocs);
+        const selected = filtered.filter(({id}) => selectedIds.has(id));
+        const summarySource = selected.length > 0 ? selected : filtered;
+        renderSummary(summarySource.map(x => x.data));
+        renderSelectionBanner(selected.length, filtered.length);
+      });
+    });
   }
 
   function openLightbox(src){
@@ -795,6 +857,7 @@
 
   let latestDocs = [];
   let loaded = false;
+  let selectedIds = new Set();
 
   function applyFilters(items){
     const canal = document.getElementById('filter-canal').value;
@@ -806,10 +869,24 @@
     });
   }
 
+  function renderSelectionBanner(selectedCount, totalCount){
+    const banner = document.getElementById('selection-banner');
+    if(selectedCount === 0){
+      banner.hidden = true;
+      return;
+    }
+    banner.hidden = false;
+    document.getElementById('selection-text').textContent =
+      `Mostrando o resumo de ${selectedCount} de ${totalCount} disparo${totalCount === 1 ? '' : 's'} selecionado${selectedCount === 1 ? '' : 's'}.`;
+  }
+
   function renderAll(){
     const filtered = applyFilters(latestDocs);
     renderCards(filtered);
-    renderSummary(filtered.map(x => x.data));
+    const selected = filtered.filter(({id}) => selectedIds.has(id));
+    const summarySource = selected.length > 0 ? selected : filtered;
+    renderSummary(summarySource.map(x => x.data));
+    renderSelectionBanner(selected.length, filtered.length);
   }
 
   function setSyncLabel(text, ok){
@@ -935,6 +1012,10 @@
     document.getElementById('filter-clear').addEventListener('click', () => {
       document.getElementById('filter-canal').value = '';
       document.getElementById('filter-data').value = '';
+      renderAll();
+    });
+    document.getElementById('selection-clear').addEventListener('click', () => {
+      selectedIds.clear();
       renderAll();
     });
 
