@@ -330,6 +330,104 @@
     -webkit-background-clip: text; background-clip: text; color: transparent;
   }
 
+  /* ---------- monthly summary ---------- */
+  .month-controls{ display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .month-select{ width: auto; min-width: 190px; }
+  .month-grid{ display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 12px; }
+  .month-stats{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .mstat{
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 13px 15px;
+    min-width: 0;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .mstat-label{ font-size: .64rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-dim); }
+  .mstat-value{ font-family: var(--font-mono); font-weight: 600; font-size: 1.08rem; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mstat-sub{ font-size: .7rem; color: var(--text-dim); }
+  .delta{ font-size: .7rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .delta.up{ color: var(--green); }
+  .delta.down{ color: var(--red); }
+  .delta.flat{ color: var(--text-dim); }
+  .month-roi{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    padding: 16px 18px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #15254a 0%, #101a33 100%);
+    border: 1px solid rgba(77,141,255,.55);
+  }
+  .month-roi .roi-label{ color: var(--accent); }
+  .month-roi-value{
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 2rem;
+    line-height: 1.1;
+    letter-spacing: -.01em;
+    background: linear-gradient(135deg, var(--text) 30%, var(--accent));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .month-roi-value.bad{ background: linear-gradient(135deg, var(--text) 30%, var(--red)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .month-roi-delta:empty{ display: none; }
+  .month-sub{ display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 12px; margin-top: 12px; }
+  .month-block{ min-width: 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px; background: rgba(23,26,36,.45); }
+  .month-block-title{ margin: 0 0 10px; font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-soft); }
+  .table-wrap{ overflow-x: auto; }
+  .channel-table{ width: 100%; border-collapse: collapse; font-size: .8rem; }
+  .channel-table th{
+    padding: 0 10px 8px;
+    text-align: right;
+    font-size: .62rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+  }
+  .channel-table td{
+    padding: 10px;
+    text-align: right;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+  }
+  .channel-table th:first-child, .channel-table td:first-child{ text-align: left; padding-left: 0; }
+  .channel-table th:last-child, .channel-table td:last-child{ padding-right: 0; }
+  .channel-table tbody tr:last-child td{ border-bottom: 0; }
+  .channel-table tbody tr.total td{ color: var(--text-soft); border-top: 1px solid var(--border-strong); }
+  .channel-table .roi-cell{ color: var(--accent); font-weight: 600; }
+  .channel-table .roi-cell.bad{ color: var(--red); }
+  .share{ display: block; height: 3px; margin-top: 5px; border-radius: 999px; background: var(--panel-3); overflow: hidden; }
+  .share i{ display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+  .channel-table .tag-canal{ font-family: var(--font-body); }
+  .highlights{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .highlight{
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 11px 12px;
+    min-width: 0;
+    text-align: left;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel-2);
+    cursor: pointer;
+    transition: border-color .15s, background .15s, transform .15s var(--ease);
+  }
+  .highlight:hover{ border-color: var(--accent-line); background: var(--panel-3); transform: translateY(-1px); }
+  .hl-label{ font-size: .62rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-dim); }
+  .hl-name{ font-size: .8rem; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hl-value{ font-family: var(--font-mono); font-size: .8rem; font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .empty-inline{ font-size: .8rem; color: var(--text-dim); }
+
   /* ---------- form ---------- */
   .form-panel{ padding: 22px 24px 20px; scroll-margin-top: 96px; }
   .form-panel:not([hidden]){ animation: panel-in .32s var(--ease); }
@@ -874,6 +972,7 @@
     .metric{ padding: 12px 14px; }
   }
   @media (max-width: 980px){
+    .month-grid, .month-sub{ grid-template-columns: 1fr; }
     .kpis{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .roi-flow{ grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
     .roi-op{ display: none; }
@@ -884,6 +983,14 @@
     .form-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 640px){
+    .month-head{ flex-direction: column; gap: 10px; }
+    .month-controls{ width: 100%; }
+    .month-select{ flex: 1; min-width: 0; }
+    .month-stats{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .mstat{ padding: 12px; }
+    .mstat-value{ font-size: .92rem; }
+    .month-roi-value{ font-size: 1.7rem; }
+    .highlights{ grid-template-columns: 1fr; }
     .topbar-inner{ padding: 10px 16px; gap: 10px; }
     .brand-mark{ width: 42px; height: 42px; }
     .brand-name{ font-size: 1.05rem; }
@@ -1031,6 +1138,55 @@
         <span class="roi-label">ROI</span>
         <span class="roi-value" id="roi-percentual">—</span>
         <span class="roi-desc" id="roi-multiplo">(venda − custo) ÷ custo</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel month-panel" id="month-panel" aria-labelledby="month-title" hidden>
+    <div class="panel-head month-head">
+      <div>
+        <h2 class="panel-title" id="month-title">Resumo do mês</h2>
+        <p class="panel-hint" id="month-hint"></p>
+      </div>
+      <div class="month-controls">
+        <span class="scope-chip" id="month-status"></span>
+        <label class="sr-only" for="month-select">Mês do resumo</label>
+        <select class="control month-select" id="month-select"></select>
+      </div>
+    </div>
+    <div class="month-grid">
+      <div class="month-stats" id="month-stats"></div>
+      <div class="month-roi">
+        <span class="roi-label">ROI do mês</span>
+        <span class="month-roi-value" id="month-roi">—</span>
+        <span class="roi-desc" id="month-roi-desc"></span>
+        <span class="month-roi-delta" id="month-roi-delta"></span>
+      </div>
+    </div>
+    <div class="month-sub">
+      <div class="month-block">
+        <h3 class="month-block-title">Por canal</h3>
+        <div class="table-wrap">
+          <table class="channel-table">
+            <thead>
+              <tr>
+                <th scope="col">Canal</th>
+                <th scope="col">Disparos</th>
+                <th scope="col">Enviados</th>
+                <th scope="col">Abertura</th>
+                <th scope="col">Positivação</th>
+                <th scope="col">Investido</th>
+                <th scope="col">Venda gerada</th>
+                <th scope="col">ROI</th>
+              </tr>
+            </thead>
+            <tbody id="month-channels"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="month-block">
+        <h3 class="month-block-title">Destaques do mês</h3>
+        <div class="highlights" id="month-highlights"></div>
       </div>
     </div>
   </section>
@@ -1427,6 +1583,152 @@
     card.classList.add('is-flash');
   }
 
+  /* ---------- monthly summary ---------- */
+
+  let selectedMonth = null;
+  let monthOptionsKey = '';
+
+  const monthKeyOf = iso => String(iso || '').slice(0, 7);
+  const monthName = key => {
+    const [y, m] = key.split('-').map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long' });
+  };
+  const monthLabel = key => `${monthName(key)} de ${key.slice(0, 4)}`;
+  const capitalize = s => s.charAt(0).toUpperCase() + s.slice(1);
+  const previousMonthKey = key => {
+    const [y, m] = key.split('-').map(Number);
+    const d = new Date(y, m - 2, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
+  const fmtRoi = roi => (roi >= 0 ? '+' : '−') + Math.abs(Math.round(roi)).toLocaleString('pt-BR') + '%';
+
+  function aggregate(docs){
+    const t = { count: docs.length, enviados: 0, abriram: 0, positivacao: 0, custo: 0, venda: 0 };
+    docs.forEach(c => {
+      const m = computeMetrics(c);
+      t.enviados += m.enviados;
+      t.abriram += m.abriram;
+      t.positivacao += m.positivacao;
+      t.custo += m.custoDisparo;
+      t.venda += m.vendaGerada;
+    });
+    t.abertura = t.enviados > 0 ? (t.abriram / t.enviados) * 100 : 0;
+    t.pctPos = t.enviados > 0 ? (t.positivacao / t.enviados) * 100 : 0;
+    t.roi = t.custo > 0 ? ((t.venda - t.custo) / t.custo) * 100 : null;
+    return t;
+  }
+
+  // Variação contra o mês anterior: percentual para volumes, pontos percentuais para taxas.
+  function deltaHtml(cur, prev, kind, prevKey){
+    if(prev == null || cur == null) return '';
+    let v;
+    if(kind === 'pp') v = cur - prev;
+    else{
+      if(!prev) return '';
+      v = ((cur - prev) / prev) * 100;
+    }
+    const cls = Math.abs(v) < 0.05 ? 'flat' : v > 0 ? 'up' : 'down';
+    const arrow = cls === 'flat' ? '=' : v > 0 ? '▲' : '▼';
+    const num = Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    return `<span class="delta ${cls}">${arrow} ${num}${kind === 'pp' ? ' p.p.' : '%'} vs ${monthName(prevKey)}</span>`;
+  }
+
+  function mstatHtml(label, value, sub, delta){
+    return `<div class="mstat"><span class="mstat-label">${label}</span><span class="mstat-value">${value}</span><span class="mstat-sub">${sub}</span>${delta}</div>`;
+  }
+
+  function renderMonthly(){
+    const panel = $('month-panel');
+    const months = [...new Set(latestDocs.map(d => monthKeyOf(d.data.data)).filter(k => /^\d{4}-\d{2}$/.test(k)))].sort().reverse();
+    if(months.length === 0){ panel.hidden = true; return; }
+    panel.hidden = false;
+    if(!selectedMonth || !months.includes(selectedMonth)) selectedMonth = months[0];
+
+    const select = $('month-select');
+    if(monthOptionsKey !== months.join()){
+      monthOptionsKey = months.join();
+      select.innerHTML = months.map(k => `<option value="${k}">${capitalize(monthLabel(k))}</option>`).join('');
+    }
+    select.value = selectedMonth;
+
+    const entries = latestDocs.filter(d => monthKeyOf(d.data.data) === selectedMonth);
+    const cur = aggregate(entries.map(d => d.data));
+    const prevKey = previousMonthKey(selectedMonth);
+    const prevEntries = latestDocs.filter(d => monthKeyOf(d.data.data) === prevKey);
+    const prev = prevEntries.length ? aggregate(prevEntries.map(d => d.data)) : null;
+    const p = (field) => prev ? prev[field] : null;
+
+    const today = new Date();
+    const currentKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    const ongoing = selectedMonth === currentKey;
+    $('month-title').textContent = `Resumo de ${monthLabel(selectedMonth)}`;
+    $('month-status').textContent = ongoing ? 'Em andamento' : 'Mês fechado';
+    $('month-status').classList.toggle('is-scoped', ongoing);
+    const dates = entries.map(d => d.data.data).filter(Boolean).sort();
+    $('month-hint').textContent = `${fmtInt(cur.count)} disparo${cur.count === 1 ? '' : 's'} entre ${fmtDate(dates[0])} e ${fmtDate(dates[dates.length - 1])}` +
+      (prev ? `, comparado com ${monthName(prevKey)}.` : '. Sem mês anterior registrado para comparar.');
+
+    $('month-stats').innerHTML = [
+      mstatHtml('Disparos', fmtInt(cur.count), 'no mês', deltaHtml(cur.count, p('count'), 'pct', prevKey)),
+      mstatHtml('Enviados', fmtInt(cur.enviados), 'clientes impactados', deltaHtml(cur.enviados, p('enviados'), 'pct', prevKey)),
+      mstatHtml('Abertura média', fmtPct(cur.abertura), `${fmtInt(cur.abriram)} aberturas`, deltaHtml(cur.abertura, p('abertura'), 'pp', prevKey)),
+      mstatHtml('Positivação', fmtInt(cur.positivacao), `${fmtPct(cur.pctPos)} dos enviados`, deltaHtml(cur.positivacao, p('positivacao'), 'pct', prevKey)),
+      mstatHtml('Investido', fmtMoney(cur.custo), 'custo dos disparos', deltaHtml(cur.custo, p('custo'), 'pct', prevKey)),
+      mstatHtml('Venda gerada', fmtMoney(cur.venda), 'informada pela equipe', deltaHtml(cur.venda, p('venda'), 'pct', prevKey)),
+    ].join('');
+
+    const roiEl = $('month-roi');
+    roiEl.textContent = cur.roi == null ? '—' : fmtRoi(cur.roi);
+    roiEl.classList.toggle('bad', cur.roi != null && cur.roi < 0);
+    $('month-roi-desc').textContent = cur.roi == null
+      ? 'sem custo de disparo no mês'
+      : `cada R$ 1 investido virou R$ ${(cur.venda / cur.custo).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    $('month-roi-delta').innerHTML = deltaHtml(cur.roi, prev ? prev.roi : null, 'pp', prevKey);
+
+    const canais = ['B2list', 'Web'].filter(c => entries.some(d => d.data.canal === c));
+    const rowHtml = (label, t, isTotal) => `
+      <tr${isTotal ? ' class="total"' : ''}>
+        <td>${isTotal ? '<span class="tag tag-canal">Total</span>' : `<span class="tag tag-canal" data-canal="${esc(label)}">${esc(label)}</span>`}</td>
+        <td>${fmtInt(t.count)}</td>
+        <td>${fmtInt(t.enviados)}</td>
+        <td>${fmtPct(t.abertura)}</td>
+        <td>${fmtInt(t.positivacao)}</td>
+        <td>${fmtMoney(t.custo)}</td>
+        <td>${fmtMoney(t.venda)}${isTotal ? '' : `<span class="share" aria-hidden="true"><i style="width:${cur.venda > 0 ? ((t.venda / cur.venda) * 100).toFixed(1) : 0}%"></i></span>`}</td>
+        <td class="roi-cell${t.roi != null && t.roi < 0 ? ' bad' : ''}">${t.roi == null ? '—' : fmtRoi(t.roi)}</td>
+      </tr>`;
+    $('month-channels').innerHTML = canais.map(c => rowHtml(c, aggregate(entries.filter(d => d.data.canal === c).map(d => d.data)), false)).join('') +
+      (canais.length > 1 ? rowHtml('Total', cur, true) : '');
+
+    const best = (score) => entries.reduce((acc, d) => {
+      const s = score(d.data);
+      return s != null && (acc == null || s > acc.s) ? { d, s } : acc;
+    }, null);
+    const picks = [
+      ['Maior venda', best(c => Number(c.vendaGerada) || 0), (d) => fmtMoney(computeMetrics(d).vendaGerada)],
+      ['Maior abertura', best(c => computeMetrics(c).enviados > 0 ? computeMetrics(c).pctAbriu : null), (d) => fmtPct(computeMetrics(d).pctAbriu)],
+      ['Maior positivação', best(c => Number(c.positivacao) || 0), (d) => `${fmtInt(computeMetrics(d).positivacao)} clientes`],
+      ['Melhor ROI', best(c => { const m = computeMetrics(c); return m.custoDisparo > 0 ? (m.vendaGerada - m.custoDisparo) / m.custoDisparo : null; }),
+        (d) => { const m = computeMetrics(d); return fmtRoi(((m.vendaGerada - m.custoDisparo) / m.custoDisparo) * 100); }],
+    ].filter(([, pick]) => pick);
+    $('month-highlights').innerHTML = picks.length
+      ? picks.map(([label, pick, val]) => `
+        <button type="button" class="highlight" data-goto="${esc(pick.d.id)}" title="Ver o disparo na lista">
+          <span class="hl-label">${label}</span>
+          <span class="hl-name">${esc(pick.d.data.nome || 'Sem nome')}</span>
+          <span class="hl-value">${val(pick.d.data)}</span>
+        </button>`).join('')
+      : '<span class="empty-inline">Sem dados suficientes no mês.</span>';
+  }
+
+  function goToCard(id){
+    $('filter-canal').value = '';
+    $('filter-data').value = '';
+    $('filter-busca').value = '';
+    renderAll();
+    flashCard(id);
+  }
+
   /* ---------- summary ---------- */
 
   function filtersActive(){
@@ -1582,6 +1884,7 @@
     const ids = new Set(latestDocs.map(d => d.id));
     for(const id of selectedIds) if(!ids.has(id)) selectedIds.delete(id);
     renderAll();
+    renderMonthly();
     return true;
   }
 
@@ -2000,6 +2303,15 @@
     });
     $('form-close').addEventListener('click', closeForm);
     $('form-cancel').addEventListener('click', closeForm);
+
+    $('month-select').addEventListener('change', (e) => {
+      selectedMonth = e.target.value;
+      renderMonthly();
+    });
+    $('month-highlights').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-goto]');
+      if(btn) goToCard(btn.getAttribute('data-goto'));
+    });
 
     const form = $('campaign-form');
     form.addEventListener('submit', submitForm);
