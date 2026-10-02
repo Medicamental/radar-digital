@@ -332,6 +332,15 @@
 
   /* ---------- monthly summary ---------- */
   .month-controls{ display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .month-toggle{ width: 40px; height: 40px; flex-shrink: 0; }
+  .month-status-inline{ display: none; color: var(--text-soft); font-weight: 600; }
+  .month-toggle svg{ transition: transform .3s var(--ease); }
+  .month-panel.is-collapsed .month-toggle svg{ transform: rotate(180deg); }
+  .month-head{ transition: margin-bottom .3s var(--ease); }
+  .month-panel.is-collapsed .month-head{ margin-bottom: 0; }
+  .month-body{ display: grid; grid-template-rows: 1fr; transition: grid-template-rows .32s var(--ease), opacity .25s var(--ease); }
+  .month-body-inner{ min-height: 0; overflow: hidden; }
+  .month-panel.is-collapsed .month-body{ grid-template-rows: 0fr; opacity: 0; }
   .month-select{ width: auto; min-width: 190px; }
   .month-grid{ display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 12px; }
   .month-stats{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
@@ -985,6 +994,8 @@
   @media (max-width: 640px){
     .month-head{ flex-direction: column; gap: 10px; }
     .month-controls{ width: 100%; }
+    .month-controls .scope-chip{ display: none; }
+    .month-status-inline{ display: inline; }
     .month-select{ flex: 1; min-width: 0; }
     .month-stats{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .mstat{ padding: 12px; }
@@ -1152,8 +1163,13 @@
         <span class="scope-chip" id="month-status"></span>
         <label class="sr-only" for="month-select">Mês do resumo</label>
         <select class="control month-select" id="month-select"></select>
+        <button type="button" class="icon-btn month-toggle" id="month-toggle" aria-expanded="true" aria-controls="month-body" aria-label="Minimizar resumo do mês" title="Minimizar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg>
+        </button>
       </div>
     </div>
+    <div class="month-body" id="month-body">
+    <div class="month-body-inner">
     <div class="month-grid">
       <div class="month-stats" id="month-stats"></div>
       <div class="month-roi">
@@ -1188,6 +1204,8 @@
         <h3 class="month-block-title">Destaques do mês</h3>
         <div class="highlights" id="month-highlights"></div>
       </div>
+    </div>
+    </div>
     </div>
   </section>
 
@@ -1665,8 +1683,9 @@
     $('month-status').textContent = ongoing ? 'Em andamento' : 'Mês fechado';
     $('month-status').classList.toggle('is-scoped', ongoing);
     const dates = entries.map(d => d.data.data).filter(Boolean).sort();
-    $('month-hint').textContent = `${fmtInt(cur.count)} disparo${cur.count === 1 ? '' : 's'} entre ${fmtDate(dates[0])} e ${fmtDate(dates[dates.length - 1])}` +
-      (prev ? `, comparado com ${monthName(prevKey)}.` : '. Sem mês anterior registrado para comparar.');
+    $('month-hint').innerHTML = `<span class="month-status-inline">${ongoing ? 'Em andamento' : 'Mês fechado'} · </span>` +
+      esc(`${fmtInt(cur.count)} disparo${cur.count === 1 ? '' : 's'} entre ${fmtDate(dates[0])} e ${fmtDate(dates[dates.length - 1])}` +
+      (prev ? `, comparado com ${monthName(prevKey)}.` : '. Sem mês anterior registrado para comparar.'));
 
     $('month-stats').innerHTML = [
       mstatHtml('Disparos', fmtInt(cur.count), 'no mês', deltaHtml(cur.count, p('count'), 'pct', prevKey)),
@@ -2303,6 +2322,23 @@
     });
     $('form-close').addEventListener('click', closeForm);
     $('form-cancel').addEventListener('click', closeForm);
+
+    const setMonthCollapsed = (collapsed) => {
+      $('month-panel').classList.toggle('is-collapsed', collapsed);
+      $('month-body').inert = collapsed;
+      const btn = $('month-toggle');
+      btn.setAttribute('aria-expanded', String(!collapsed));
+      btn.setAttribute('aria-label', collapsed ? 'Expandir resumo do mês' : 'Minimizar resumo do mês');
+      btn.title = collapsed ? 'Expandir' : 'Minimizar';
+    };
+    let monthCollapsed = false;
+    try{ monthCollapsed = localStorage.getItem('radar-digital-month-collapsed') === '1'; }catch(e){}
+    setMonthCollapsed(monthCollapsed);
+    $('month-toggle').addEventListener('click', () => {
+      monthCollapsed = !monthCollapsed;
+      setMonthCollapsed(monthCollapsed);
+      try{ localStorage.setItem('radar-digital-month-collapsed', monthCollapsed ? '1' : '0'); }catch(e){}
+    });
 
     $('month-select').addEventListener('change', (e) => {
       selectedMonth = e.target.value;
