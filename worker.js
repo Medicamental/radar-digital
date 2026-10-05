@@ -73,7 +73,19 @@ function campanhaDocFromBody(body) {
     vendaGerada: Number(body.vendaGerada) || 0,
     positivacao: Number(body.positivacao) || 0,
     imagemId: body.imagemId ? String(body.imagemId) : null,
+    planilhaId: body.planilhaId ? String(body.planilhaId) : null,
+    planilhaNome: body.planilhaId && body.planilhaNome ? String(body.planilhaNome).slice(0, 200) : null,
+    planilhaLinhas: body.planilhaId ? Number(body.planilhaLinhas) || 0 : 0,
   };
+}
+
+async function dropAttachments(env, existing, doc) {
+  if (existing?.imagemId && existing.imagemId !== doc?.imagemId) {
+    await env.CAMPANHAS.delete('imagem:' + existing.imagemId).catch(() => {});
+  }
+  if (existing?.planilhaId && existing.planilhaId !== doc?.planilhaId) {
+    await env.CAMPANHAS.delete('planilha:' + existing.planilhaId).catch(() => {});
+  }
 }
 
 async function readBody(request) {
@@ -120,9 +132,7 @@ async function handleCampanhas(request, env, url) {
       criadoEm: existing.criadoEm,
       atualizadoEm: new Date().toISOString(),
     };
-    if (existing.imagemId && existing.imagemId !== doc.imagemId) {
-      await env.CAMPANHAS.delete('imagem:' + existing.imagemId).catch(() => {});
-    }
+    await dropAttachments(env, existing, doc);
     idx.items = idx.items.filter(d => d.id !== id);
     idx.items.push(doc);
     await saveIndex(env, idx);
@@ -132,9 +142,7 @@ async function handleCampanhas(request, env, url) {
   if (request.method === 'DELETE' && id) {
     const idx = await loadIndex(env);
     const existing = await findCampanha(env, idx, id);
-    if (existing?.imagemId) {
-      await env.CAMPANHAS.delete('imagem:' + existing.imagemId).catch(() => {});
-    }
+    await dropAttachments(env, existing, null);
     idx.items = idx.items.filter(d => d.id !== id);
     if (!idx.migrated) idx.deleted = [...new Set([...(idx.deleted || []), id])];
     await saveIndex(env, idx);
@@ -178,10 +186,45 @@ async function handleImagens(request, env, url) {
   return json({ error: 'Não encontrado' }, 404);
 }
 
+const MAX_PLANILHA_BYTES = 10 * 1024 * 1024;
+
+// A planilha chega já convertida no navegador: { headers: [...], rows: [[...], ...] }.
+async function handlePlanilhas(request, env, url) {
+  const id = url.pathname.split('/').filter(Boolean)[2];
+
+  if (request.method === 'POST' && !id) {
+    const text = await request.text();
+    if (text.length > MAX_PLANILHA_BYTES) return json({ error: 'Planilha grande demais (máx. 10 MB).' }, 413);
+    let data;
+    try { data = JSON.parse(text); } catch { return json({ error: 'Planilha inválida.' }, 400); }
+    if (!Array.isArray(data.headers) || !Array.isArray(data.rows)) return json({ error: 'Planilha inválida.' }, 400);
+    const clean = {
+      headers: data.headers.map(h => String(h ?? '')),
+      rows: data.rows.filter(Array.isArray).map(r => r.map(c => (c == null ? '' : String(c)))),
+    };
+    const newId = crypto.randomUUID();
+    await env.CAMPANHAS.put('planilha:' + newId, JSON.stringify(clean));
+    return json({ id: newId, linhas: clean.rows.length }, 201);
+  }
+
+  if (request.method === 'GET' && id) {
+    const value = await env.CAMPANHAS.get('planilha:' + id);
+    if (!value) return json({ error: 'Planilha não encontrada' }, 404);
+    return new Response(value, {
+      headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=31536000, immutable' },
+    });
+  }
+
+  return json({ error: 'Não encontrado' }, 404);
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     try {
+      if (url.pathname.startsWith('/api/planilhas')) {
+        return await handlePlanilhas(request, env, url);
+      }
       if (url.pathname.startsWith('/api/campanhas')) {
         return await handleCampanhas(request, env, url);
       }
