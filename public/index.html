@@ -559,7 +559,7 @@
     cursor: default;
     animation: panel-in .28s var(--ease);
   }
-  .details-head{ display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+  .details-head{ display: flex; align-items: baseline; justify-content: flex-end; gap: 12px; margin-bottom: 10px; }
   .details-title{ font-size: .66rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-soft); }
   .details-file{ font-size: .72rem; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .details-scroll{
@@ -1526,7 +1526,7 @@
     const body = t === undefined ? '<div class="details-state">Carregando itens…</div>'
       : t === null ? '<div class="details-state">Não foi possível carregar a planilha.</div>'
       : tableHtml(t);
-    return `<div class="details-head"><span class="details-title">Itens da promoção</span>${c.planilhaNome ? `<span class="details-file">${esc(c.planilhaNome)}</span>` : ''}</div>${body}`;
+    return `<div class="details-head">${c.planilhaNome ? `<span class="details-file">${esc(c.planilhaNome)}</span>` : ''}</div>${body}`;
   }
 
   async function toggleDetails(id){
@@ -1538,11 +1538,13 @@
       expandedIds.delete(id);
       card?.querySelector('.card-details')?.remove();
       btn?.classList.remove('is-open');
+      if(btn) btn.querySelector('.items-label').textContent = 'Ver mais';
       btn?.setAttribute('aria-expanded', 'false');
       return;
     }
     expandedIds.add(id);
     btn?.classList.add('is-open');
+    if(btn) btn.querySelector('.items-label').textContent = 'Ver menos';
     btn?.setAttribute('aria-expanded', 'true');
     const box = document.createElement('div');
     box.className = 'card-details';
@@ -1754,7 +1756,7 @@
         <div class="card-footer">
           <span class="select-hint"><span class="check" aria-hidden="true">${ICON.check}</span><span class="select-text">${sel ? 'Selecionado' : 'Clique para comparar'}</span></span>
           <div class="card-actions">
-            ${c.planilhaId ? `<button type="button" class="items-btn${expandedIds.has(id) ? ' is-open' : ''}" data-itens="${esc(id)}" aria-expanded="${expandedIds.has(id)}">${fmtInt(c.planilhaLinhas)} ${c.planilhaLinhas === 1 ? 'item' : 'itens'}${ICON.chevron}</button>` : ''}
+            ${c.planilhaId ? `<button type="button" class="items-btn${expandedIds.has(id) ? ' is-open' : ''}" data-itens="${esc(id)}" aria-expanded="${expandedIds.has(id)}"><span class="items-label">${expandedIds.has(id) ? 'Ver menos' : 'Ver mais'}</span>${ICON.chevron}</button>` : ''}
             <button type="button" class="action-btn" data-edit="${esc(id)}">${ICON.edit}<span>Editar</span></button>
             <button type="button" class="action-btn danger" data-remove="${esc(id)}">${ICON.trash}<span>Remover</span></button>
           </div>
