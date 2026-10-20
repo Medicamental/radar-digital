@@ -525,6 +525,15 @@
   .preview-chip b{ font-family: var(--font-mono); font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
   .preview-chip.is-roi b{ color: var(--accent); }
 
+  .month-canal{ display: inline-flex; padding: 3px; gap: 2px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-2); }
+  .month-canal button{ height: 32px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; color: var(--text-dim); font-size: .76rem; font-weight: 600; cursor: pointer; transition: background .15s, color .15s; }
+  .month-canal button:hover{ color: var(--text); }
+  .month-canal button[aria-pressed="true"]{ background: var(--accent-dim); color: var(--accent); }
+  .click-strip{ display: flex; flex-wrap: wrap; gap: 6px 8px; padding: 10px 18px; border-top: 1px solid var(--border); }
+  .click-strip .ck-title{ font-size: .62rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-dim); align-self: center; margin-right: 4px; }
+  .ck{ display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--border); font-size: .7rem; color: var(--text-dim); }
+  .ck b{ font-family: var(--font-mono); font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+  .ck.bad b{ color: var(--red); }
   .planilha-info{ display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
   .planilha-chip{
     display: inline-flex; align-items: center; gap: 8px;
@@ -1239,6 +1248,7 @@
       <div class="month-controls">
         <span class="scope-chip" id="month-status"></span>
         <label class="sr-only" for="month-select">Mês do resumo</label>
+        <div class="month-canal" id="month-canal" role="group" aria-label="Canal do resumo"><button type="button" data-mcanal="" aria-pressed="true">Todos</button><button type="button" data-mcanal="B2list" aria-pressed="false">B2list</button><button type="button" data-mcanal="Web" aria-pressed="false">Web</button></div>
         <select class="control month-select" id="month-select"></select>
         <button type="button" class="icon-btn month-toggle" id="month-toggle" aria-expanded="true" aria-controls="month-body" aria-label="Minimizar resumo do mês" title="Minimizar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg>
@@ -1375,6 +1385,40 @@
             <span id="imagem-preview-fallback" hidden>Não foi possível carregar a imagem</span>
           </div>
           <button type="button" class="btn btn-ghost btn-sm" id="imagem-remove-btn">Remover imagem</button>
+        </div>
+      </fieldset>
+
+      <fieldset class="form-section">
+        <legend>Métricas de envio <span class="field-hint">(opcional)</span></legend>
+        <div class="form-grid">
+          <div class="field">
+            <label class="field-label" for="fm-comprado">Comprado</label>
+            <input class="control" id="fm-comprado" data-metrica="comprado" type="number" min="0" step="1" inputmode="numeric" placeholder="—">
+          </div>
+          <div class="field">
+            <label class="field-label" for="fm-clicado">Clicado</label>
+            <input class="control" id="fm-clicado" data-metrica="clicado" type="number" min="0" step="1" inputmode="numeric" placeholder="—">
+          </div>
+          <div class="field">
+            <label class="field-label" for="fm-lido">Lido</label>
+            <input class="control" id="fm-lido" data-metrica="lido" type="number" min="0" step="1" inputmode="numeric" placeholder="—">
+          </div>
+          <div class="field">
+            <label class="field-label" for="fm-recebido">Recebido</label>
+            <input class="control" id="fm-recebido" data-metrica="recebido" type="number" min="0" step="1" inputmode="numeric" placeholder="—">
+          </div>
+          <div class="field">
+            <label class="field-label" for="fm-enviado">Enviado</label>
+            <input class="control" id="fm-enviado" data-metrica="enviado" type="number" min="0" step="1" inputmode="numeric" placeholder="—">
+          </div>
+          <div class="field">
+            <label class="field-label" for="fm-falho">Falho</label>
+            <input class="control" id="fm-falho" data-metrica="falho" type="number" min="0" step="1" inputmode="numeric" placeholder="—">
+          </div>
+          <div class="field">
+            <label class="field-label" for="fm-pedidos">Positivações / Pedidos</label>
+            <input class="control" id="fm-pedidos" data-metrica="pedidos" type="number" min="0" step="1" inputmode="numeric" placeholder="—">
+          </div>
         </div>
       </fieldset>
 
@@ -1753,6 +1797,7 @@
             ${metricHtml('Estado', esc(c.estado || '—'), 'região do disparo', 'is-text')}
           </div>
         </div>
+        ${c.metricas && Object.keys(c.metricas).length ? `<div class="click-strip"><span class="ck-title">Métricas de envio</span>${Object.entries({"comprado":"Comprado","clicado":"Clicado","lido":"Lido","recebido":"Recebido","enviado":"Enviado","falho":"Falho","pedidos":"Positivações / Pedidos"}).filter(([k]) => c.metricas[k] != null).map(([k, l]) => `<span class="ck${k === 'falho' ? ' bad' : ''}">${l} <b>${fmtInt(c.metricas[k])}</b></span>`).join('')}</div>` : ''}
         ${c.planilhaId && expandedIds.has(id) ? `<div class="card-details" id="details-${esc(id)}">${detailsHtml(c)}</div>` : ''}
         <div class="card-footer">
           <span class="select-hint"><span class="check" aria-hidden="true">${ICON.check}</span><span class="select-text">${sel ? 'Selecionado' : 'Clique para comparar'}</span></span>
@@ -1819,6 +1864,7 @@
   /* ---------- monthly summary ---------- */
 
   let selectedMonth = null;
+  let monthCanal = '';
   let monthOptionsKey = '';
 
   const monthKeyOf = iso => String(iso || '').slice(0, 7);
@@ -1884,10 +1930,11 @@
     }
     select.value = selectedMonth;
 
-    const entries = latestDocs.filter(d => monthKeyOf(d.data.data) === selectedMonth);
+    const inCanal = d => !monthCanal || d.data.canal === monthCanal;
+    const entries = latestDocs.filter(d => monthKeyOf(d.data.data) === selectedMonth && inCanal(d));
     const cur = aggregate(entries.map(d => d.data));
     const prevKey = previousMonthKey(selectedMonth);
-    const prevEntries = latestDocs.filter(d => monthKeyOf(d.data.data) === prevKey);
+    const prevEntries = latestDocs.filter(d => monthKeyOf(d.data.data) === prevKey && inCanal(d));
     const prev = prevEntries.length ? aggregate(prevEntries.map(d => d.data)) : null;
     const p = (field) => prev ? prev[field] : null;
 
@@ -2216,6 +2263,7 @@
   }
 
   function fillForm(data){
+    document.querySelectorAll('[data-metrica]').forEach(el => { const v = data.metricas && data.metricas[el.dataset.metrica]; el.value = v ?? ''; });
     $('f-nome').value = data.nome || '';
     $('f-canal').value = data.canal || '';
     $('f-data').value = data.data || '';
@@ -2439,7 +2487,7 @@
       const res = await fetch(url, {
         method: wasEditing ? 'PUT' : 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ nome, canal, data, vigencia, estado, cluster, enviados, abriram, vendaGerada, positivacao, imagemId, ...planilha }),
+        body: JSON.stringify({ nome, canal, data, vigencia, estado, cluster, enviados, abriram, vendaGerada, positivacao, imagemId, ...planilha, metricas: Object.fromEntries([...document.querySelectorAll('[data-metrica]')].filter(el => el.value !== '').map(el => [el.dataset.metrica, Number(el.value)])) }),
       });
       if(!res.ok){
         const errBody = await res.json().catch(() => ({}));
@@ -2578,6 +2626,14 @@
       monthCollapsed = !monthCollapsed;
       setMonthCollapsed(monthCollapsed);
       try{ localStorage.setItem('radar-digital-month-collapsed', monthCollapsed ? '1' : '0'); }catch(e){}
+    });
+
+    $('month-canal').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-mcanal]');
+      if(!b) return;
+      monthCanal = b.getAttribute('data-mcanal');
+      document.querySelectorAll('#month-canal [data-mcanal]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      renderMonthly();
     });
 
     $('month-select').addEventListener('change', (e) => {

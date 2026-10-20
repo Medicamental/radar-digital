@@ -60,6 +60,14 @@ async function findCampanha(env, idx, id) {
   return legacy ? { id, ...legacy } : null;
 }
 
+const METRICAS = ['comprado', 'clicado', 'lido', 'recebido', 'enviado', 'falho', 'pedidos'];
+function cleanMetricas(m) {
+  if (!m || typeof m !== 'object') return null;
+  const out = {};
+  for (const k of METRICAS) if (m[k] !== '' && m[k] != null && Number.isFinite(Number(m[k]))) out[k] = Number(m[k]);
+  return Object.keys(out).length ? out : null;
+}
+
 function campanhaDocFromBody(body) {
   return {
     nome: String(body.nome),
@@ -76,6 +84,7 @@ function campanhaDocFromBody(body) {
     planilhaId: body.planilhaId ? String(body.planilhaId) : null,
     planilhaNome: body.planilhaId && body.planilhaNome ? String(body.planilhaNome).slice(0, 200) : null,
     planilhaLinhas: body.planilhaId ? Number(body.planilhaLinhas) || 0 : 0,
+    metricas: cleanMetricas(body.metricas),
   };
 }
 
