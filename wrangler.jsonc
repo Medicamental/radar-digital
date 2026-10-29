@@ -1,6 +1,6 @@
 {
   "name": "radar-digital",
-  "main": "worker.js",
+  "main": "entrada_portao.mjs",
   "compatibility_date": "2026-09-28",
   "assets": {
     "directory": "./public",
