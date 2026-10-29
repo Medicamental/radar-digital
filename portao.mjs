@@ -48,7 +48,7 @@ button:hover{background:hsl(219 100% 65% / .24);box-shadow:0 0 18px -4px var(--g
 <h1>${esc(nome)}</h1><p class="s">Acesso restrito a colaboradores Medicamental</p>
 ${erro ? `<div class="err">${esc(erro)}</div>` : ""}
 <input type="hidden" name="volta" value="${esc(volta)}">
-<label for="email">E-mail corporativo</label><input id="email" name="email" type="email" placeholder="nome.sobrenome@medicamental.com.br" required autocomplete="email">
+<label for="email">E-mail corporativo</label><input id="email" name="email" type="email" placeholder="seu e-mail" required autocomplete="email">
 <label for="codigo">Código de acesso do dia</label><input id="codigo" name="codigo" placeholder="XXXX-XXXX" required autocomplete="off" maxlength="9">
 <button type="submit">Entrar</button>
 <p class="dica">O código do dia está nos e-mails dos radares enviados às 8h.</p>
@@ -58,7 +58,10 @@ ${erro ? `<div class="err">${esc(erro)}</div>` : ""}
 export function comPortao(app, nome) {
   return {
     ...(app || {}),
-    async fetch(req, env, ctx) {
+    async fetch(req, envRecebido, ctx) {
+      // nos apps TanStack/Nitro o "env" nao chega aqui -- busca as configuracoes direto no runtime
+      let env = envRecebido;
+      if (!env || !env.RADAR_SEGREDO) { try { env = (await import("cloudflare:workers")).env; } catch { env = envRecebido || {}; } }
       const url = new URL(req.url);
       if (!env.RADAR_SEGREDO) return new Response("Configuração pendente", { status: 503 });
       if (url.pathname === "/__sair") return new Response(null, { status: 302, headers: { location: "/", "set-cookie": `${COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax` } });
@@ -67,13 +70,14 @@ export function comPortao(app, nome) {
         const email = String(f.get("email") || "").trim().toLowerCase();
         const cod = String(f.get("codigo") || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
         const volta = destinoSeguro(String(f.get("volta") || "/"));
-        if (!/^[a-z0-9._-]+@medicamental\.com\.br$/.test(email)) return new Response(telaLogin(nome, "Use o seu e-mail @medicamental.com.br.", volta), { status: 401, headers: SEG });
-        if (!igual(cod, await codigoDoDia(env.RADAR_SEGREDO))) return new Response(telaLogin(nome, "Código inválido ou de outro dia. Use o código do e-mail de hoje.", volta), { status: 401, headers: SEG });
+        // mensagem unica de proposito: nao revela qual dominio de e-mail e aceito
+        if (!/^[a-z0-9._-]+@medicamental\.com\.br$/.test(email) || !igual(cod, await codigoDoDia(env.RADAR_SEGREDO)))
+          return new Response(telaLogin(nome, "E-mail ou código inválido.", volta), { status: 401, headers: SEG });
         return new Response(null, { status: 303, headers: { location: volta, "set-cookie": `${COOKIE}=${await sessaoDoDia(env.RADAR_SEGREDO)}; Path=/; Expires=${fimDoDia()}; HttpOnly; Secure; SameSite=Lax` } });
       }
       const ck = (req.headers.get("cookie") || "").match(new RegExp(`(?:^|;\\s*)${COOKIE}=([a-f0-9]+)`));
       if (ck && igual(ck[1], await sessaoDoDia(env.RADAR_SEGREDO))) {
-        if (app && app.fetch) return app.fetch(req, env, ctx);
+        if (app && app.fetch) return app.fetch(req, envRecebido, ctx);
         return env.ASSETS.fetch(req);
       }
       return new Response(telaLogin(nome, "", url.pathname + url.search), { status: 401, headers: SEG });
