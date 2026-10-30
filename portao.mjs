@@ -23,7 +23,10 @@ function fimDoDia() { return new Date(hoje() + "T23:59:59-03:00").toUTCString();
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 function destinoSeguro(v) { return typeof v === "string" && v.startsWith("/") && !v.startsWith("//") ? v : "/"; }
 
-function telaLogin(nome, erro, volta) {
+// trocar a senha fixa derruba as sessoes antigas (a sessao assina a propria senha)
+async function sessaoFixa(env, nomeSecret) { return Array.from(await hmac(env.RADAR_SEGREDO, "fixa:" + env[nomeSecret])).map(b => b.toString(16).padStart(2, "0")).join(""); }
+
+function telaLogin(nome, erro, volta, senhaFixa) {
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive"><title>${esc(nome)} — Acesso</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
@@ -49,13 +52,14 @@ button:hover{background:hsl(219 100% 65% / .24);box-shadow:0 0 18px -4px var(--g
 ${erro ? `<div class="err">${esc(erro)}</div>` : ""}
 <input type="hidden" name="volta" value="${esc(volta)}">
 <label for="email">E-mail corporativo</label><input id="email" name="email" type="email" placeholder="seu e-mail" required autocomplete="email">
-<label for="codigo">Código de acesso do dia</label><input id="codigo" name="codigo" placeholder="XXXX-XXXX" required autocomplete="off" maxlength="9">
+<label for="codigo">${senhaFixa ? "Senha de acesso" : "Código de acesso do dia"}</label><input id="codigo" name="codigo" placeholder="XXXX-XXXX" required autocomplete="off" maxlength="9">
 <button type="submit">Entrar</button>
-<p class="dica">O código do dia está nos e-mails dos radares enviados às 8h.</p>
+${senhaFixa ? "" : `<p class="dica">O código do dia está nos e-mails dos radares enviados às 8h.</p>`}
 </form></body></html>`;
 }
 
-export function comPortao(app, nome) {
+// senhaFixa (opcional): nome do secret com uma senha fixa no lugar do codigo do dia; sessao dura 30 dias (Radar Digital, 30/10/2026)
+export function comPortao(app, nome, senhaFixa) {
   return {
     ...(app || {}),
     async fetch(req, envRecebido, ctx) {
@@ -71,16 +75,16 @@ export function comPortao(app, nome) {
         const cod = String(f.get("codigo") || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
         const volta = destinoSeguro(String(f.get("volta") || "/"));
         // mensagem unica de proposito: nao revela qual dominio de e-mail e aceito
-        if (!/^[a-z0-9._-]+@medicamental\.com\.br$/.test(email) || !igual(cod, await codigoDoDia(env.RADAR_SEGREDO)))
-          return new Response(telaLogin(nome, "E-mail ou código inválido.", volta), { status: 401, headers: SEG });
-        return new Response(null, { status: 303, headers: { location: volta, "set-cookie": `${COOKIE}=${await sessaoDoDia(env.RADAR_SEGREDO)}; Path=/; Expires=${fimDoDia()}; HttpOnly; Secure; SameSite=Lax` } });
+        if (!/^[a-z0-9._-]+@medicamental\.com\.br$/.test(email) || !igual(cod, senhaFixa ? String(env[senhaFixa] || "").toUpperCase().replace(/[^A-Z0-9]/g, "") : await codigoDoDia(env.RADAR_SEGREDO)))
+          return new Response(telaLogin(nome, "E-mail ou código inválido.", volta, senhaFixa), { status: 401, headers: SEG });
+        return new Response(null, { status: 303, headers: { location: volta, "set-cookie": `${COOKIE}=${senhaFixa ? await sessaoFixa(env, senhaFixa) : await sessaoDoDia(env.RADAR_SEGREDO)}; Path=/; ${senhaFixa ? "Max-Age=2592000" : "Expires=" + fimDoDia()}; HttpOnly; Secure; SameSite=Lax` } });
       }
       const ck = (req.headers.get("cookie") || "").match(new RegExp(`(?:^|;\\s*)${COOKIE}=([a-f0-9]+)`));
-      if (ck && igual(ck[1], await sessaoDoDia(env.RADAR_SEGREDO))) {
+      if (ck && igual(ck[1], senhaFixa ? await sessaoFixa(env, senhaFixa) : await sessaoDoDia(env.RADAR_SEGREDO))) {
         if (app && app.fetch) return app.fetch(req, envRecebido, ctx);
         return env.ASSETS.fetch(req);
       }
-      return new Response(telaLogin(nome, "", url.pathname + url.search), { status: 401, headers: SEG });
+      return new Response(telaLogin(nome, "", url.pathname + url.search, senhaFixa), { status: 401, headers: SEG });
     },
   };
 }
